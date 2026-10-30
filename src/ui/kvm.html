@@ -1,0 +1,89 @@
+<html>
+    <head>
+        <style>
+            @import url(common.css);
+            body {
+                padding: 16px;
+                background: color(bg);
+            }
+            div.kvm-name {
+                font-weight: bold;
+                font-size: 1.15em;
+            }
+            div.kvm-side {
+                margin-top: 2px;
+                color: color(light-text);
+            }
+            div.kvm-tip {
+                margin-top: 10px;
+            }
+            div.kvm-remember {
+                margin-top: 12px;
+            }
+            div.kvm-hint {
+                margin-top: 4px;
+                color: color(light-text);
+            }
+            div.kvm-office {
+                margin-top: 12px;
+                color: color(light-text);
+                font-size: 0.9em;
+            }
+            button#kvm-stop {
+                margin-top: 14px;
+            }
+        </style>
+        <script type="text/tiscript">
+            include "common.tis";
+            var p = view.parameters;
+            function self.closing() {
+                if (p.onclose) p.onclose();
+                return true;
+            }
+            view.windowIcon = self.url(p.icon);
+            function rememberHints(on) {
+                if (!on) return "";
+                return <div>
+                    <div .kvm-hint>{translate("When HopToDesk starts, it connects to this PC and turns on KVM mode by itself.")}</div>
+                    {p.saved_password ? "" : <div .kvm-hint>{translate("Tick Remember password the next time you connect, so HopToDesk can sign in by itself.")}</div>}
+                </div>;
+            }
+            function self.ready() {
+                applyDarkTheme(p.dark);
+                if (p.message) {
+                    $(body).content(<div>
+                        <div .kvm-name>{p.name}</div>
+                        <div .kvm-tip>{p.message}</div>
+                        <button .button #kvm-stop>{translate("OK")}</button>
+                    </div>);
+                } else {
+                    var on = p.remember == "on";
+                    var ts = on ? { checked: true } : {};
+                    $(body).content(<div>
+                        <div .kvm-name>{p.name}</div>
+                        <div .kvm-side>{translate(p.side)}</div>
+                        <div .kvm-tip>{translate("Move the mouse past that edge of your screen to use it.")}</div>
+                        <div .kvm-tip>{translate("{} brings the mouse back.").replace("{}", p.hotkey)}</div>
+                        {p.remember ? <div .kvm-remember>
+                            <button|checkbox #kvm-remember {ts}>{translate("Remember this PC")}</button>
+                            <div #kvm-remember-hints>{rememberHints(on)}</div>
+                        </div> : ""}
+                        <button .button #kvm-stop>{translate("Stop")}</button>
+                        {p.remember ? <div .kvm-office>{translate("For an office, Desks on the Business plan pairs PCs from the dashboard.")}</div> : ""}
+                    </div>);
+                }
+                view.windowTopmost = true;
+                view.windowTopmost = false;
+            }
+            event click $(#kvm-stop) {
+                if (p.onstop) p.onstop();
+            }
+            event click $(#kvm-remember) (_, me) {
+                var on = me.state.checked ? true : false;
+                if (p.onremember) p.onremember(on);
+                $(#kvm-remember-hints).content(rememberHints(on));
+            }
+        </script>
+    </head>
+    <body></body>
+</html>

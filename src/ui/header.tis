@@ -1,0 +1,1486 @@
+var pi = handler.get_default_pi(); // peer information
+var chat_msgs = [];
+
+var svg_fullscreen = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+</svg>;
+var svg_action = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+</svg>;
+var svg_display = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/>
+</svg>;
+var svg_kvm = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="8" height="7" rx="1"/><rect x="15" y="4" width="8" height="7" rx="1"/><path d="M9 7.5h6"/><path d="M5 11v4"/><path d="M19 11v4"/><path d="M3 15h4"/><path d="M17 15h4"/></svg>;
+var svg_secure = <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+var svg_insecure = <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>;
+var svg_insecure_relay = <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16.5" r="1.5"/></svg>;
+var svg_secure_relay = <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16.5" r="1.5"/></svg>;
+var svg_recording_off = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>;
+var svg_recording_on = <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="#EF4444"/></svg>;
+var svg_recording_warn = <svg viewBox="0 0 24 24" fill="none" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="7" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.5" fill="#FF8C00"/></svg>;
+var svg_security_code = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+var svg_printer = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>;
+var svg_filetransfer = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6m-3 3l3-3 3 3"/></svg>;
+var svg_switchsides = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>; 
+var svg_showscreen = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="m17 8 5-5"/><path d="M17 3h5v5"/></svg>;
+var svg_screenshot = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+var svg_privacymodeoff = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>;
+var svg_privacymodeon = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" /><path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87" /><path d="M3 3l18 18" /></svg>;
+var svg_monitor = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg>;
+var svg_add_to_dashboard = <svg viewBox="0 0 24 24" fill="none" stroke="#28A745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>;
+var svg_annotate = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>;
+var svg_voice_call = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+var svg_voice_call_waiting = <svg viewBox="0 0 24 24" fill="none" stroke="#FF8C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+var svg_voice_call_on = <svg viewBox="0 0 24 24" fill="none" stroke="#28A745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+
+var cur_window_state = view.windowState;
+function check_state_change() {
+    if (view.windowState != cur_window_state) {
+        stateChanged();
+    }
+    self.timer(30ms, check_state_change);
+}
+
+if (is_linux) {
+    check_state_change();
+} else {
+    view << event statechange {
+        stateChanged();
+    }
+}
+
+function get_id() {
+    if (!pi) return handler.get_option('alias') || handler.get_id();
+    return handler.get_option('alias') || pi.dashboard_device_name || pi.hostname || handler.get_id();
+}
+
+function stateChanged() {
+    cur_window_state = view.windowState;
+    adjustBorder();
+    adaptDisplay();
+    if (cur_window_state != View.WINDOW_MINIMIZED) {
+        var tvp = $(#terminal-viewport);
+        if (tvp) {
+            tvp.state.focus = true;
+        } else {
+            view.focus = handler; // to make focus away from restore/maximize button, so that enter key work
+        }
+    }
+    var fs = view.windowState == View.WINDOW_FULL_SCREEN;
+    var el = $(#fullscreen);
+    if (el) el.attributes.toggleClass("active", fs);
+    el = $(#maximize);
+    if (el) {
+        el.state.disabled = fs;
+    }
+    if (fs) {
+        $(header).style.set {
+            display: "none",
+        };
+    }
+}
+
+var header;
+var old_window_state = View.WINDOW_SHOWN;
+
+var is_edit_os_password;
+
+function editOSPassword(login=false) {
+    var p0 = handler.get_option('os-password');
+    handler.set_dialog_key_pause(true);
+    msgbox("custom-os-password", 'OS Password', p0, "", function(res=null) {
+        handler.set_dialog_key_pause(false);
+        if (!res) return;
+        var a0 = handler.get_option('auto-login') != '';
+        var p = (res.password || '').trim();
+        var a = res.autoLogin || false;
+        if (p == p0 && a == a0) return;
+        if (p != p0) handler.set_option('os-password', p);
+        if (a != a0) handler.set_option('auto-login', a ? 'Y' : '');
+        if (p && login) {
+            handler.input_os_password(p, true);
+        }
+      });
+}
+
+var recording = false;
+var recording_failed = false;
+var privacyon = handler.get_toggle_option("privacy-mode") || false;
+var portable_service_running = false;
+var voice_call_state = "off";
+var kvm_on = false;
+var kvm_notice = null;
+var kvm_missed_chat = false;
+var kvm_fullscreen = false;
+const KVM_SIDES = { "left": "Left of my screen", "right": "Right of my screen", "top": "Above my screen", "bottom": "Below my screen" };
+
+function setVoiceCallState(state) {
+    voice_call_state = state;
+    if (header) header.update();
+}
+
+function onVoiceCallWaiting() {
+    setVoiceCallState("waiting");
+}
+
+function onVoiceCallStart() {
+    setVoiceCallState("on");
+}
+
+function onVoiceCallClosed(reason) {
+    setVoiceCallState("off");
+}
+
+function onVoiceCallIncoming() {
+}
+
+	
+function cycleValue(order, cur) {
+    return order[(order.indexOf(cur) + 1) % order.length];
+}
+
+function cursorSizeLabel() {
+    var labels = { "cursor-size-1": "Default cursor size", "cursor-size-1-5": "Larger cursor (1.5x)", "cursor-size-2": "Largest cursor (2x)" };
+    return labels[handler.get_option("cursor-size") || "cursor-size-1"] || "Default cursor size";
+}
+
+function scrollSpeedLabel() {
+    var labels = { "scroll-speed-1": "Default scroll speed", "scroll-speed-2": "Slower scrolling", "scroll-speed-4": "Slowest scrolling" };
+    return labels[handler.get_option("scroll-speed") || "scroll-speed-1"] || "Default scroll speed";
+}
+
+function switchAfterNote(perform) {
+    var go = function() {
+        session_note_asked = true;
+        perform();
+        self.timer(400ms, function() { view.close(); });
+    };
+    var ask = false;
+    try { ask = !session_note_asked && pi && pi.session_notes && !handler.is_display_child(); } catch (e) {}
+    if (!ask) {
+        go();
+        return;
+    }
+    session_note_asked = true;
+    self.timer(200ms, function() {
+        try { showSessionNoteDialog(go); } catch (e) { go(); }
+    });
+}
+
+function toggleFullscreen() {
+    if (view.windowState == View.WINDOW_FULL_SCREEN) {
+        var restore_to = old_window_state;
+        view.windowState = View.WINDOW_SHOWN;
+        if (restore_to == View.WINDOW_MAXIMIZED) {
+            if (is_osx) self.timer(400ms, function() { view.windowState = View.WINDOW_MAXIMIZED; });
+            else view.windowState = View.WINDOW_MAXIMIZED;
+        }
+        return;
+    }
+    old_window_state = view.windowState;
+    if (!is_osx && view.windowState == View.WINDOW_MAXIMIZED) {
+        view.windowState = View.WINDOW_SHOWN;
+    }
+    view.windowState = View.WINDOW_FULL_SCREEN;
+    if (is_linux) { self.timer(150ms, function() { view.windowState = View.WINDOW_FULL_SCREEN; }); }
+}
+
+class Header: Reactor.Component {
+    this var conn_note = "";
+    
+    function this() {
+        header = this;
+    }
+
+    function render() {
+        var code = this.security_numbers;
+        var icon_conn;
+        var title_conn;
+        if (code) {
+            if (this.direct_connection) {
+                icon_conn = svg_secure;
+                title_conn = translate("Direct and encrypted connection");
+            } else {
+                icon_conn = svg_secure_relay;
+                title_conn = translate("Relayed and encrypted connection");
+            }
+        } else {
+            if (this.direct_connection) {
+                icon_conn = svg_insecure;
+                title_conn = translate("Direct and unencrypted connection");
+            } else {
+                icon_conn = svg_insecure_relay;
+                title_conn = translate("Relayed and unencrypted connection");
+            }
+        }
+        var title = get_id();
+        if (pi.hostname) title += " (" + pi.username + "@" + pi.hostname + ")";
+        if ((pi.displays || []).length == 0) {
+            return <div .ellipsis style="size:*;text-align:center;margin:* 0;">{title}</div>;
+        }
+        updateWindowToolbarPosition();
+        var style = "flow:horizontal;";
+        style += is_osx ? "margin:*" : "margin:* 0;";
+		self.timer(1ms, updatePrivacyMode);
+        self.timer(1ms, toggleMenuState);
+		privacyon = handler.get_toggle_option("privacy-mode");
+        var remoteIdTooltip = get_id() != handler.get_id() ? handler.get_id() : "";
+        var can_switch = !is_view_camera && handler.is_switchsides_supported() && !handler.is_watching_shared_screen() && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux" || pi.platform == "FreeBSD");
+        var kvm_ok = kvmShown();
+        return <div style={style}>
+            {is_xfce ? "" : <button #fullscreen title={translate("Full Screen")}>{svg_fullscreen}</button>}
+            <div #screens>
+                <span #secure title={title_conn}>{icon_conn}</span>
+                <div .remote-id title={remoteIdTooltip}>{get_id()}</div>
+                {renderScreenSwitcher()}
+            </div>
+            <span .toolbar-sep />
+            {is_view_camera ? "" : <button #chat title={translate("Chat")}>{svg_chat}</button>}
+            {!is_view_camera && !is_file_transfer && !handler.is_port_forward() && !is_terminal && handler.is_voice_call_supported() ? <button #voice-call title={translate(voice_call_state == "off" ? "Voice call" : "Stop voice call")}>{voice_call_state == "on" ? svg_voice_call_on : (voice_call_state == "waiting" ? svg_voice_call_waiting : svg_voice_call)}</button> : ""}
+            {!is_view_camera && handler.has_dashboard_link() && !is_file_transfer && !handler.is_port_forward() && !is_terminal && !pi.dashboard_linked && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux" || pi.platform == "FreeBSD") ? <button #add-to-dashboard title={translate("Add remote device to my dashboard")}>{svg_add_to_dashboard}</button> : ""}
+            {is_view_camera ? "" : <button #action title={translate("Control Actions")}>{svg_action}</button>}
+            <button #display title={translate("Display Settings")}>{svg_display}</button>
+            {kvm_ok ? <button #kvm title={translate("KVM mode")}>{svg_kvm}</button> : ""}
+            {is_view_camera || !keyboard_enabled ? "" : <button #keyboard title={translate("Keyboard mode")}>{svg_keyboard}</button>}
+            <span .toolbar-sep />
+            {!is_view_camera && recording_enabled ? <button #recording title={recording_failed ? translate("Recording unavailable: video codec not supported") : translate("Recording")}>{recording_failed ? svg_recording_warn : (recording ? svg_recording_on : svg_recording_off)}</button> : ""}
+            {code ? <button #securitycode title={translate("Security Code")}>{svg_security_code}</button> : ""}
+			{is_view_camera || !file_enabled ? "" : <button #transfer-file title={translate('Transfer File')}>{svg_filetransfer}</button>}
+            {!is_view_camera && handler.is_remote_printing_supported() ? <button #remote-print title={translate('Remote Print')}>{svg_printer}</button> : ""}
+            {handler.is_screenshot_supported() ? <button #screenshot title={translate('Screenshot')}>{svg_screenshot}</button> : ""}
+            {!is_view_camera && keyboard_enabled && handler.is_annotation_supported() && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux") ? <button #annotate class={draw_mode ? "active" : ""} style={draw_mode ? "color: #" + DRAW_COLORS[draw_color_idx][0] : ""} title={translate('Draw on screen')}>{svg_annotate}</button> : ""}
+			{can_switch ? <button #switch-sides style="display:block" title={translate('Switch Sides')}>{svg_switchsides}</button> : ""}
+			{can_switch ? <button #show-my-screen style="display:block" title={translate('Show my screen')}>{svg_showscreen}</button> : ""}
+			{!is_view_camera && keyboard_enabled && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux" || pi.platform == "FreeBSD") ? <button #privacy-mode title={translate('Privacy Mode')}>{privacyon ? svg_privacymodeon : svg_privacymodeoff}</button> : ""}
+            {is_view_camera ? "" : this.renderKeyboardPop()}
+            {this.renderDisplayPop()}
+            {kvm_ok ? this.renderKvmPop() : ""}
+            {is_view_camera ? "" : this.renderActionPop()}
+        </div>;
+    }
+
+    function renderKeyboardPop() {
+        const is_map_mode_supported = handler.is_keyboard_mode_supported("map");
+        const is_translate_mode_supported = handler.is_keyboard_mode_supported("translate");
+        return <menu.context #keyboard-options>
+                <li #auto>{translate('Auto')}</li>
+                { is_map_mode_supported && <li #map>{translate('Remote layout')}</li> }
+                { is_translate_mode_supported && <li #translate>{translate('My layout')}</li> }
+            </menu>;
+    }
+
+    function renderDisplayPop() {
+        var codecs = handler.alternative_codecs();
+        var show_codec = codecs[0] || codecs[1] || codecs[2] || codecs[3];
+
+        var cursor_embedded = false;
+        if ((pi.displays || []).length > 0) {
+            if (pi.current_display >= 0 && pi.displays.length > pi.current_display) {
+                cursor_embedded = pi.displays[pi.current_display].cursor_embedded;
+            }
+        }
+
+        var menu = <menu.context #display-options>
+                <li #adjust-window title={translate("Adjust Window")}>{translate('Adjust Window')}</li>
+                <div .separator />
+                <li #original type="view-style" title={translate("Original")}>{translate('Original')}</li>
+                <li #shrink type="view-style" title={translate("Shrink")}>{translate('Shrink')}</li>
+                <li #stretch type="view-style" title={translate("Stretch")}>{translate('Stretch')}</li>
+                <div .separator />
+                <li #zoom-in type="zoom" title={translate("Zoom In")}>{translate("Zoom In")}</li>
+                <li #zoom-out type="zoom" title={translate("Zoom Out")}>{translate("Zoom Out")}</li>
+                <li #zoom-reset type="zoom" title={translate("Reset Zoom")}>{translate("Reset Zoom")}</li>
+                {(pi.displays || []).length > 1 ? <div>
+                <div .separator />
+                <li #all-one-window title={translate("All Displays")}>{translate('All Displays')}</li>
+                <li #each-window title={translate("Each monitor in its own window")}>{translate('Each monitor in its own window')}</li>
+                </div> : ""}
+                {!cursor_embedded ? <div>
+                <div .separator />
+                <li #cursor-size-cycle type="cursor-size-cycle" title={translate(cursorSizeLabel())}>{translate(cursorSizeLabel())}</li>
+                </div> : ""}
+                <div .separator />
+                <li #scroll-speed-cycle type="scroll-speed-cycle" title={translate(scrollSpeedLabel())}>{translate(scrollSpeedLabel())}</li>
+                <div .separator />
+                <li #best type="image-quality" title={translate("Good image quality")}>{translate('Good image quality')}</li>
+                <li #balanced type="image-quality" title={translate("Balanced")}>{translate('Balanced')}</li>
+                <li #low type="image-quality" title={translate("Optimize reaction time")}>{translate('Optimize reaction time')}</li>
+                <li #custom type="image-quality" title={translate("Custom")}>{translate('Custom')}</li>
+                <div .separator />
+                <li #frame-rate title={translate("Frame rate")}>{translate('Frame rate')}</li>
+                {show_codec ? <div>
+                <div .separator />
+                <li #auto type="codec-preference" title={translate("Auto")}>Auto</li>
+                {codecs[0] ? <li #vp8 type="codec-preference">VP8 Codec</li> : ""}
+                <li #vp9 type="codec-preference">VP9 Codec</li>
+                {codecs[1] ? <li #av1 type="codec-preference">AV1 Codec</li> : ""}
+                {codecs[2] ? <li #h264 type="codec-preference">H264 Codec</li> : ""}
+                {codecs[3] ? <li #h265 type="codec-preference">H265 Codec</li> : ""}
+                </div> : ""}
+                <div .separator />
+                {keyboard_enabled ? <li #view-only .toggle-option title={translate("View only")}><span .toggle-track><span .toggle-knob /></span>{translate('View only')}</li> : ""}
+                {!cursor_embedded && <li #show-remote-cursor .toggle-option title={translate("Show remote cursor")}><span .toggle-track><span .toggle-knob /></span>{translate('Show remote cursor')}</li>}
+                <li #show-quality-monitor .toggle-option title={translate("Show quality monitor")}><span .toggle-track><span .toggle-knob /></span>{translate('Show quality monitor')}</li>
+                {handler.version_cmp(pi.version, '1.46.6') >= 0 && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux") ? <li #show-my-cursor .toggle-option title={translate("Show my cursor")}><span .toggle-track><span .toggle-knob /></span>{translate('Show my cursor')}</li> : ""}
+                {audio_enabled ? <li #disable-audio .toggle-option title={translate("Mute")}><span .toggle-track><span .toggle-knob /></span>{translate('Mute')}</li> : ""}
+                {(is_win && pi.platform == "Windows") && file_enabled ? <li #enable-file-copy-paste .toggle-option title={translate("Enable file copy and paste")}><span .toggle-track><span .toggle-knob /></span>{translate('Enable file copy and paste')}</li> : ""}
+                {keyboard_enabled && clipboard_enabled ? <li #disable-clipboard .toggle-option title={translate("Disable clipboard")}><span .toggle-track><span .toggle-knob /></span>{translate('Disable clipboard')}</li> : ""}
+                {keyboard_enabled ? <li #lock-after-session-end .toggle-option title={translate("Lock after session end")}><span .toggle-track><span .toggle-knob /></span>{translate('Lock after session end')}</li> : ""}
+                {keyboard_enabled && ((is_osx && pi.platform != "Mac OS") || (!is_osx && pi.platform == "Mac OS")) ? <li #allow_swap_key .toggle-option title={translate("Swap control-command key")}><span .toggle-track><span .toggle-knob /></span>{translate('Swap control-command key')}</li> : ""}
+                {handler.version_cmp(pi.version, '1.2.4') >= 0 ? <li #i444 .toggle-option><span .toggle-track><span .toggle-knob /></span>{translate('True color (4:4:4)')}</li> : ""}
+            </menu>;
+        return menu;
+    }
+
+    function renderKvmPop() {
+        return <menu.context #kvm-options>
+                <li #kvm-left>{translate("Left of my screen")}</li>
+                <li #kvm-right>{translate("Right of my screen")}</li>
+                <li #kvm-top>{translate("Above my screen")}</li>
+                <li #kvm-bottom>{translate("Below my screen")}</li>
+            </menu>;
+    }
+
+    function renderActionPop() {
+        var show_request_elevation = keyboard_enabled && pi.platform == "Windows" && !pi.sas_enabled && !portable_service_running && !is_file_transfer && !handler.is_port_forward() && !handler.is_view_camera() && !is_terminal;
+        var menu = <menu.context #action-options>
+                {keyboard_enabled && (pi.platform == "Linux" || (pi.platform == "Windows" && pi.sas_enabled)) ? <li #ctrl-alt-del>{translate('Insert Ctrl + Alt + Del')}</li> : ""}
+                {show_request_elevation ? <li #request-elevation>{translate('Request Elevation')}</li> : ""}
+                {keyboard_enabled ? <li #os-password>{translate('OS Password')}</li> : ""}
+                {keyboard_enabled ? <li #type-clipboard>{translate('Type clipboard')}</li> : ""}
+                <li #tunnel>{translate('TCP Tunneling')}</li>
+                <div .separator />
+                {restart_enabled && (pi.platform == "Linux" || pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "FreeBSD") ? <li #restart_remote_device>{translate('Restart Remote Device')}</li> : ""}
+                {restart_enabled && handler.is_safe_mode_restart_supported() ? <li #restart_remote_device_safe_mode>{translate('Restart in Safe Mode')}</li> : ""}
+                {keyboard_enabled ? <li #lock-screen>{translate('Insert Lock')}</li> : ""}
+                {keyboard_enabled && (pi.platform == "Windows" || pi.platform == "Mac OS") ? <li #block-input class={canBlockInput() ? "" : "unavailable"}>{translate(input_blocked ? "Unblock user input" : "Block user input")}</li> : ""}
+                <li #note>{translate('Note')}</li>
+                <li #refresh>{translate('Refresh')}</li>
+            </menu>;
+        return menu;
+    }
+
+    function renderScreenSwitcher() {
+        if (!pi.displays || pi.displays.length < 2) return "";
+        var tiles = pi.displays.map(function(d, i) {
+            return <div .screen-tile tabindex="0" title={translate("Display") + " " + (i+1)} class={pi.current_display == i ? "current" : ""}>{i+1}</div>;
+        });
+        tiles.push(<div .screen-tile tabindex="0" #screen-all title={translate("All Displays")} class={pi.current_display == -1 ? "current" : ""}>{translate("All")}</div>);
+        return <div #screen-switcher>{tiles}</div>;
+    }
+
+    event click $(#fullscreen) (_, el) {
+        toggleFullscreen();
+    }
+    
+    event click $(#chat) {
+        startChat();
+    }
+
+    event click $(#voice-call) {
+        if (voice_call_state == "off") handler.request_voice_call();
+        else handler.close_voice_call();
+    }
+    
+    event click $(#securitycode) {
+        var code = this.security_numbers;
+        msgbox("nocancel", translate("Your Security Code"), generate_security_number_block(code), "", function() { });
+    }
+    
+    event click $(#action) (_, me) {
+        var menu = $(menu#action-options);
+        showPopupMenu(me, menu);
+    }
+
+    event click $(#display) (_, me) {
+        var menu = $(menu#display-options);
+        showPopupMenu(me, menu);
+    }
+
+    event click $(#keyboard) (_, me) {
+        var menu = $(menu#keyboard-options);
+        showPopupMenu(me, menu);
+    }
+
+    event click $(#kvm) (_, me) {
+        showPopupMenu(me, $(menu#kvm-options));
+    }
+
+    event click $(menu#kvm-options li) (_, me) {
+        startKvm(me.id.substr(4));
+    }
+
+    event click $(#annotate) {
+        if (draw_mode) exitDrawMode();
+        else enterDrawMode();
+    }
+
+    event click $(#recording) (_, me) {
+        header.update();
+        handler.record_screen(!recording)
+    }
+
+    event click $(#privacy-mode) (_, me) {
+		togglePrivacyMode(me.id);
+    }
+
+    event click $(#screen-switcher > .screen-tile) (_, me) {
+        if (me.id == "screen-all") {
+            if (pi.current_display != -1) enterAllDisplays();
+            return;
+        }
+        if (pi.current_display == me.index) return;
+        enterSingleDisplay(me.index);
+    }
+
+    event keyup (evt) {
+        var isBackslash = evt.keyCode == 220 || (is_osx && evt.keyCode == 0x2A) || (is_linux && evt.keyCode == 0x5C);
+        if((pi.displays || []).length > 1 && isBackslash)
+        {
+            var next = pi.current_display + 1;
+            if (next >= pi.displays.length) {
+                enterAllDisplays();
+            } else {
+                enterSingleDisplay(next);
+            }
+        }
+        if (evt.ctrlKey && evt.keyCode == 80) {
+            showPrinterDialog();
+        }
+    }
+
+    event click $(#transfer-file) {
+        handler.transfer_file();
+    }
+    
+    event click $(#remote-print) {
+        showPrinterDialog();
+    }
+    
+    event click $(#switch-sides) {
+        msgbox(
+            "Switch sides confirmation",
+            translate("Switch sides"),
+            translate("Are you sure you want to switch sides") + "?",
+            "",
+            function(res=null) {
+                if (res != null) switchAfterNote(function() { handler.switch_sides_handler(); });
+            }
+        );
+    }
+
+    event click $(#show-my-screen) {
+        msgbox(
+            "Switch sides confirmation",
+            translate("Show my screen"),
+            translate("Are you sure you want to show your screen") + "?",
+            "",
+            function(res=null) {
+                if (res != null) switchAfterNote(function() { handler.show_my_screen_handler(); });
+            }
+        );
+    }
+
+    event click $(#screenshot) {
+        screenshot_auto_clipboard = true;
+        handler.take_screenshot(screenshotDisplay(), "");
+    }
+
+    event click $(#add-to-dashboard) {
+        handler.request_add_to_dashboard();
+    }
+
+    event click $(#request-elevation) {
+        handler.set_dialog_key_pause(true);
+        msgbox("custom-elevation", translate('Request Elevation'),
+            <div .form>
+                <div style="margin-bottom: 12px;">
+                    {translate('Ask the remote user for authentication')}
+                    <div style="font-size: 0.85em; color: #888; margin-top: 4px;">{translate('Choose this if the remote account is administrator')}</div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <button|checkbox(use_logon) #elevation-use-logon .custom-event>{translate('Transmit the username and password of administrator')}</button>
+                </div>
+                <div #elevation-logon-fields style="display: none;">
+                    <div style="font-size: 0.85em; color: #888; margin-bottom: 8px;">
+                        {translate('still_click_uac_tip')}
+                    </div>
+                    <div style="margin-bottom: 4px;">{translate('Username')}</div>
+                    <input|text(username) .outline-focus placeholder={translate('eg: admin')} style="width: *; margin-bottom: 8px;" />
+                    <div style="margin-bottom: 4px;">{translate('Password')}</div>
+                    <input|password(password) style="width: *;" />
+                </div>
+            </div>,
+            "", function(res=null) {
+                if (!res) {
+                    handler.set_dialog_key_pause(false);
+                    return;
+                }
+                if (res.id === "elevation-use-logon") {
+                    var fields = $(#elevation-logon-fields);
+                    if (fields) {
+                        fields.style.set { display: res.state.checked ? "block" : "none" };
+                    }
+                    return;
+                }
+                if (res.use_logon) {
+                    var u = (res.username || "").trim();
+                    var p = (res.password || "").trim();
+                    if (!u) return translate('Empty Username');
+                    if (!p) return translate('Empty Password');
+                    handler.elevate_with_logon(u, p);
+                } else {
+                    handler.elevate_direct();
+                }
+                handler.set_dialog_key_pause(false);
+            }, 360);
+    }
+
+    event click $(#os-password) (evt) {
+        if (is_edit_os_password) {
+            is_edit_os_password = false;
+            return;
+        }
+        var p = handler.get_option('os-password');
+        if (!p) editOSPassword(true);
+        else handler.input_os_password(p, true);
+    }
+
+    event click $(#type-clipboard) {
+        handler.type_clipboard();
+    }
+
+    event click $(#tunnel) {
+        handler.tunnel();
+    }
+
+    event click $(#note) {
+        var self = this;
+        handler.set_dialog_key_pause(true);
+        msgbox("custom", "Note", <div .form>
+         <textarea .outline-focus spellcheck="false" name="text" novalue="input note here" style="overflow: scroll-indicator; width:*; height: 140px; font-size: 1.2em; padding: 0.5em;">{self.conn_note}</textarea>
+          </div>, "", function(res=null) {
+            handler.set_dialog_key_pause(false);
+            if (!res) return;
+            if (res.text == null || res.text == undefined) return;
+            self.conn_note = res.text ?? "";
+            handler.send_note(res.text);
+          }, 280);
+    }
+
+    event click $(#ctrl-alt-del) {
+        handler.ctrl_alt_del();
+    }
+
+    event click $(#restart_remote_device) {
+        msgbox(
+            "restart-confirmation",
+            translate("Restart remote device"),
+            translate("Are you sure you want to restart") + " " + pi.username + "@" + pi.hostname + "(" + get_id() + ") ?",
+            "",
+            function(res=null) {
+                if (res != null) handler.restart_remote_device();
+            }
+        );
+    }
+
+    event click $(#restart_remote_device_safe_mode) {
+        msgbox(
+            "restart-confirmation",
+            translate("Restart in Safe Mode"),
+            <div .form>
+                <div>{translate("safe_mode_restart_tip")}</div>
+                <div style="margin-top: 12px;">{pi.username + "@" + pi.hostname + " (" + get_id() + ")"}</div>
+            </div>,
+            "",
+            function(res=null) {
+                if (res != null) handler.restart_remote_device_safe_mode();
+            },
+            260
+        );
+    }
+
+    event click $(#lock-screen) {
+        handler.lock_screen();
+    }
+
+    event click $(#refresh) {
+        handler.refresh_video(0);
+    }
+
+    event click $(#block-input) {
+        toggleBlockInput();
+    }
+
+    event click $(menu#display-options li) (_, me) {
+        if (me.id == "custom") {
+            handle_custom_image_quality();
+        } else if (me.id == "frame-rate") {
+            handle_frame_rate();
+        } else if (me.id == "all-one-window") {
+            if (pi.current_display != -1) enterAllDisplays();
+        } else if (me.id == "each-window") {
+            openMonitorWindows();
+        } else if (me.id == "privacy-mode") {
+            togglePrivacyMode(me.id);
+        } else if (me.id == "show-quality-monitor") {
+            toggleQualityMonitor(me.id);
+        } else if (me.id == "i444") {
+            toggleI444(me.id);
+        } else if (me.attributes.hasClass("toggle-option")) {
+            handler.toggle_option(me.id);
+            toggleMenuState();
+            if (me.id == "view-only") header.update();
+        } else if (!me.attributes.hasClass("selected")) {
+            var type =  me.attributes["type"];
+            if (type == "image-quality") {
+                handler.save_image_quality(me.id);
+            } else if (type == "view-style") {
+                handler.save_view_style(me.id);
+                adaptDisplay();
+            } else if (type == "zoom") {
+                if (me.id == "zoom-in") handler.applyZoomDelta(1.25);
+                else if (me.id == "zoom-out") handler.applyZoomDelta(1.0 / 1.25);
+                else if (me.id == "zoom-reset") handler.resetZoom();
+            } else if (type == "codec-preference") {
+                handler.set_option("codec-preference", me.id);
+                handler.change_prefer_codec();
+            } else if (type == "cursor-size-cycle") {
+                var cur = handler.get_option("cursor-size") || "cursor-size-1";
+                handler.set_option("cursor-size", cycleValue(["cursor-size-1", "cursor-size-1-5", "cursor-size-2"], cur));
+                refreshCursor();
+                me.text = translate(cursorSizeLabel());
+                me.attributes["title"] = translate(cursorSizeLabel());
+            } else if (type == "scroll-speed-cycle") {
+                var cur = handler.get_option("scroll-speed") || "scroll-speed-1";
+                handler.set_option("scroll-speed", cycleValue(["scroll-speed-1", "scroll-speed-2", "scroll-speed-4"], cur));
+                refreshScrollSpeed();
+                me.text = translate(scrollSpeedLabel());
+                me.attributes["title"] = translate(scrollSpeedLabel());
+            }
+            toggleMenuState();
+        }
+    }
+
+    event click $(menu#keyboard-options>li) (_, me) {
+        handler.save_keyboard_mode(me.id);
+        toggleMenuState();
+    }
+}
+
+function showPrinterDialog() {
+    var defaultPrinter = "";
+    try { defaultPrinter = handler.get_default_printer(); } catch(e) {}
+    var printers = [];
+    try { printers = handler.get_printer_names(); } catch(e) {}
+    if (printers.length == 0) {
+        msgbox("nocancel", translate("Remote Print"),
+            translate("No printers found on this computer."), "", null);
+        return;
+    }
+    msgbox("select-printer", translate("Remote Print"),
+        "", "", function(res=null) {
+            if (!res) return;
+            var name = res.printer || defaultPrinter;
+            if (name) {
+                handler.save_printer_selection(name, res.always_use_printer || false);
+                msgbox("nocancel", translate("Remote Print"),
+                    "Printer set to: " + name, "", function() {});
+            }
+        }, 240);
+}
+
+function handle_custom_image_quality() {
+    var tmp = handler.get_custom_image_quality();
+    var bitrate = (tmp[0] || 50);
+    var extendedBitrate = bitrate > 100;
+    var maxRate = extendedBitrate ? 2000 : 100;
+    msgbox("custom-image-quality", "Custom Image Quality", "<div .form> \
+          <div><input #bitrate-slider type=\"hslider\" style=\"width: 50%\" name=\"bitrate\" max=\"" + maxRate + "\" min=\"10\" value=\"" + bitrate + "\" buddy=\"bitrate-buddy\" /><b #bitrate-buddy>" + bitrate + "</b>% Bitrate&nbsp;<button|checkbox #extended-slider .custom-event " + (extendedBitrate ? "checked" : "") + ">More</button></div> \
+      </div>", "", function(res=null) {
+        if (!res) return;
+        if (res.id === "extended-slider") {
+            var slider = res.parent.$(#bitrate-slider);
+            var max = res.state.checked ? 2000 : 100;
+            var current = slider.value;
+            slider.attributes["max"] = max;
+            if (current > max) slider.value = max;
+            return;
+        }
+        if (!res.bitrate) return;
+        handler.save_custom_image_quality(res.bitrate);
+        toggleMenuState();
+      });
+}
+
+function handle_frame_rate() {
+    var fps = handler.get_custom_fps();
+    msgbox("custom-frame-rate", "Frame rate", "<div .form> \
+          <div><input #fps-slider type=\"hslider\" style=\"width: 50%\" name=\"fps\" max=\"120\" min=\"5\" value=\"" + fps + "\" buddy=\"fps-buddy\" /><b #fps-buddy>" + fps + "</b>&nbsp;" + translate("FPS") + "</div> \
+      </div>", "", function(res=null) {
+        if (!res || !res.fps) return;
+        handler.set_custom_fps(res.fps);
+      });
+}
+
+function toggleMenuState() {
+    var values = [];
+    var q = handler.get_image_quality();
+    if (!q) q = "balanced";
+    values.push(q);
+    var s = handler.get_view_style();
+    if (!s) {
+        s = "shrink";
+        handler.save_view_style(s);
+        adaptDisplay();
+    }
+    values.push(s);
+    var c = handler.get_option("codec-preference");
+    if (!c) c = "auto";
+    values.push(c);
+    for (var el in $$(menu#display-options li)) {
+        var want = values.indexOf(el.id) >= 0;
+        if (el.attributes.hasClass("selected") != want)
+            el.attributes.toggleClass("selected", want);
+    }
+    var k = handler.get_raw_keyboard_mode();
+    for (var el in $$(menu#keyboard-options>li)) {
+        var want = (el.id == k);
+        if (el.attributes.hasClass("selected") != want)
+            el.attributes.toggleClass("selected", want);
+    }
+    for (var id in ["view-only", "show-remote-cursor", "show-my-cursor", "follow-remote-cursor", "follow-remote-window", "show-quality-monitor", "disable-audio", "enable-file-copy-paste", "disable-clipboard", "lock-after-session-end", "allow_swap_key", "i444"]) {
+        var el = self.select('#' + id);
+        if (el) {
+            var value = handler.get_toggle_option(id);
+            if (el.attributes.hasClass("selected") != value)
+                el.attributes.toggleClass("selected", value);
+        }
+    }
+}
+
+if (is_osx) {
+    $(header).content(<Header />);
+    $(header).attributes["role"] = "window-caption";
+} else {
+    if (is_file_transfer || is_port_forward || is_terminal) {
+        $(caption).content(<Header />);
+    } else {
+        $(div.window-toolbar).content(<Header />);
+    }
+    setWindowButontsAndIcon();
+}
+
+var _origHeaderUpdate = header.update;
+header.update = function() {
+    _origHeaderUpdate.call(header);
+    updateWindowToolbarPosition();
+};
+
+
+
+function checkMcpCommands() {
+    try {
+        if (handler.check_mcp_dismiss()) {
+            closeMsgbox();
+        }
+        if (handler.take_focus_request()) {
+            view.windowActivate = true;
+        }
+        var btnId = handler.get_mcp_click_button();
+        if (btnId) {
+            clickToolbarButton(btnId);
+        }
+        var chatMsg = handler.get_mcp_chat_msg();
+        if (chatMsg) {
+            handler.send_chat(chatMsg);
+        }
+        var pw = handler.get_mcp_password();
+        if (pw) {
+            handler.login("", "", pw, false);
+            closeMsgbox();
+            msgbox("connecting", "Connecting...", "Logging in...");
+        }
+        if (handler.check_mcp_query_state()) {
+            gatherAndWriteMcpState();
+        }
+    } catch(e) {}
+    self.timer(300ms, checkMcpCommands);
+}
+self.timer(300ms, checkMcpCommands);
+
+// Gather full UI state and write to temp file for parent process
+function gatherAndWriteMcpState() {
+    try {
+        var peerId = handler.get_id();
+
+        // Connection quality from qualityMonitorData (updated by updateQualityStatus)
+        var quality = {
+            speed: qualityMonitorData[0] || null,
+            fps: qualityMonitorData[1] || null,
+            delay_ms: qualityMonitorData[2] || null,
+            target_bitrate_kb: qualityMonitorData[3] || null,
+            codec: qualityMonitorData[4] || null,
+        };
+
+        // Display info from peer info
+        var displays = [];
+        if (pi && pi.displays) {
+            for (var i = 0; i < pi.displays.length; i++) {
+                var d = pi.displays[i];
+                displays.push({
+                    index: i,
+                    width: d.width,
+                    height: d.height,
+                    x: d.x,
+                    y: d.y,
+                    cursor_embedded: d.cursor_embedded || false,
+                });
+            }
+        }
+
+        // Dialog/popup state
+        var dialogVisible = false;
+        var dialogType = "";
+        var msgboxEl = $(div.msgbox);
+        if (msgboxEl && msgboxEl.style["display"] != "none") {
+            dialogVisible = true;
+            dialogType = last_msgbox_tag || "unknown";
+        }
+        var popupOpen = _activePopup ? true : false;
+
+        // Settings
+        var viewStyle = handler.get_view_style();
+        var imageQuality = handler.get_image_quality();
+        var codecPref = handler.get_option("codec-preference");
+        var keyboardMode = handler.get_raw_keyboard_mode();
+
+        // Connection type
+        var isSecure = header ? (header.secure_connection || false) : false;
+        var isDirect = header ? (header.direct_connection || false) : false;
+
+        // Window state
+        var winState = "normal";
+        if (view.windowState == View.WINDOW_FULL_SCREEN) winState = "fullscreen";
+        else if (view.windowState == View.WINDOW_MINIMIZED) winState = "minimized";
+
+        var state = {
+            peer_id: peerId,
+            platform: pi ? pi.platform : "unknown",
+            hostname: pi ? pi.hostname : "",
+            username: pi ? pi.username : "",
+            version: pi ? pi.version : "",
+            current_display: pi ? pi.current_display : 0,
+            displays: displays,
+            connection: {
+                secure: isSecure,
+                direct: isDirect,
+                quality: quality,
+            },
+            permissions: {
+                keyboard: keyboard_enabled,
+                clipboard: clipboard_enabled,
+                audio: audio_enabled,
+                file_transfer: file_enabled,
+                restart: restart_enabled,
+                recording: recording_enabled,
+            },
+            ui: {
+                window_state: winState,
+                recording: recording,
+                privacy_mode: privacyon,
+                dialog_open: dialogVisible,
+                dialog_type: dialogType,
+                popup_open: popupOpen,
+                view_style: viewStyle,
+                image_quality: imageQuality,
+                codec_preference: codecPref,
+                keyboard_mode: keyboardMode,
+                kvm: kvm_on,
+            },
+            toolbar: (function() {
+                try {
+                    var hdr = $(header);
+                    if (!hdr) return null;
+                    var toolbar = $(div.window-toolbar) || hdr.$(div);
+                    if (!toolbar) return null;
+                    var tw = toolbar.box(#width, #border);
+                    var hw = hdr.box(#width, #border);
+                    var tl = toolbar.box(#left, #border, #parent);
+                    var centered = hw > 0 && tw > 0 ? Math.abs(tl - (hw - tw) / 2) < 5 : null;
+                    var btns = [];
+                    for (var el in toolbar.$$(button[id])) {
+                        if (el.style["display"] != "none") btns.push(el.attributes["id"]);
+                    }
+                    return { width: tw, header_width: hw, left: tl, centered: centered, buttons: btns };
+                } catch(e) { return null; }
+            })(),
+            video: {
+                width: display_width,
+                height: display_height,
+                scale: display_scale,
+                cursor_embedded: display_cursor_embedded,
+            },
+        };
+
+        handler.write_mcp_state(peerId, JSON.stringify(state));
+    } catch(e) {
+        handler.write_mcp_state(handler.get_id() || "unknown", JSON.stringify({error: "" + e}));
+    }
+}
+
+// Programmatically click a toolbar button or submenu item by ID
+// Supports "button_id" for top-level buttons and "menu:item_id" for submenu items
+function clickToolbarButton(btnId) {
+    // Handle submenu items: "display:shrink", "action:ctrl-alt-del", "keyboard:map"
+    var colonIdx = btnId.indexOf(":");
+    if (colonIdx > 0) {
+        var menuId = btnId.substr(0, colonIdx);
+        var itemId = btnId.substr(colonIdx + 1);
+        clickSubmenuItem(menuId, itemId);
+        return;
+    }
+    stdout.println("MCP: clicking button '" + btnId + "'");
+    if (btnId == "screenshot") { screenshot_auto_clipboard = true; handler.take_screenshot(screenshotDisplay(), ""); return; }
+    if (btnId == "chat") { startChat(); return; }
+    if (btnId == "transfer-file") { handler.transfer_file(); return; }
+    if (btnId == "remote-print") { showPrinterDialog(); return; }
+    if (btnId == "recording") { header.update(); handler.record_screen(!recording); return; }
+    var toolbar = $(div.window-toolbar) || $(header);
+    if (!toolbar) { stdout.println("MCP: no toolbar element found"); return; }
+    var el = toolbar.$(button#{btnId});
+    if (!el) el = toolbar.$(div#{btnId});
+    if (!el) { stdout.println("MCP: button '" + btnId + "' not found in toolbar"); return; }
+    if (btnId == "action") { showPopupMenu(el, $(menu#action-options)); }
+    else if (btnId == "display") { showPopupMenu(el, $(menu#display-options)); }
+    else if (btnId == "keyboard") { showPopupMenu(el, $(menu#keyboard-options)); }
+    else if (btnId == "privacy-mode") { togglePrivacyMode(btnId); }
+    else { el.sendEvent("click"); }
+}
+
+// Execute a submenu item action directly without opening the popup
+function clickSubmenuItem(menuId, itemId) {
+    if (menuId == "action") {
+        // Action menu items - each has its own click handler
+        if (itemId == "request-elevation") { handler.elevate_direct(); }
+        else if (itemId == "os-password") {
+            var p = handler.get_option("os-password");
+            if (!p) editOSPassword(true);
+            else handler.input_os_password(p, true);
+        }
+        else if (itemId == "type-clipboard") { handler.type_clipboard(); }
+        else if (itemId == "tunnel") { handler.tunnel(); }
+        else if (itemId == "ctrl-alt-del") { handler.ctrl_alt_del(); }
+        else if (itemId == "restart_remote_device") { handler.restart_remote_device(); }
+        else if (itemId == "lock-screen") { handler.lock_screen(); }
+        else if (itemId == "block-input") { toggleBlockInput(); }
+        else if (itemId == "refresh") { handler.refresh_video(0); }
+        // unknown action items are silently ignored (validated by MCP server)
+    }
+    else if (menuId == "display") {
+        // Display menu items
+        if (itemId == "custom") { handle_custom_image_quality(); }
+        else if (itemId == "privacy-mode") { togglePrivacyMode(itemId); }
+        else if (itemId == "show-quality-monitor") { toggleQualityMonitor(itemId); }
+        else if (itemId == "show-remote-cursor" || itemId == "show-my-cursor" || itemId == "disable-audio" ||
+                 itemId == "disable-clipboard" || itemId == "lock-after-session-end") {
+            handler.toggle_option(itemId);
+            toggleMenuState();
+        }
+        else if (itemId == "original" || itemId == "shrink" || itemId == "stretch" || itemId == "adaptive") {
+            handler.save_view_style(itemId);
+            adaptDisplay();
+            toggleMenuState();
+        }
+        else if (itemId == "best" || itemId == "balanced" || itemId == "low") {
+            handler.save_image_quality(itemId);
+            toggleMenuState();
+        }
+        // unknown display items are silently ignored (validated by MCP server)
+    }
+    else if (menuId == "keyboard") {
+        if (itemId == "auto" || itemId == "map" || itemId == "translate") {
+            handler.save_keyboard_mode(itemId);
+            toggleMenuState();
+        }
+    }
+    else if (menuId == "annotate") {
+        annotateMenuAction(itemId);
+    }
+    else if (menuId == "kvm") {
+        if (itemId == "stop") stopKvm();
+        else startKvm(itemId);
+    }
+    // unknown menus are silently ignored (validated by MCP server)
+}
+
+function annotateMenuAction(itemId) {
+    if (itemId == "draw-clear") { handler.clear_annotations(); return; }
+    if (itemId == "draw-exit") { exitDrawMode(); return; }
+    if (itemId == "draw-undo") { drawUndo(); return; }
+    if (itemId == "draw-pen") { setDrawTool(5); return; }
+    if (itemId == "draw-line") { setDrawTool(1); return; }
+    if (itemId == "draw-arrow") { setDrawTool(2); return; }
+    if (itemId == "draw-rect") { setDrawTool(3); return; }
+    if (itemId == "draw-ellipse") { setDrawTool(4); return; }
+}
+
+handler.updatePi = function(v) {
+    pi = v;
+    recording = handler.is_recording();
+    header.update();
+    if (kvm_link) {
+        startKvmLink();
+        return;
+    }
+    var caption = get_id();
+    if (caption && caption != handler.get_id()) {
+        try { view.windowCaption = caption; } catch (e) {}
+    }
+    if (is_port_forward) {
+        view.windowState = View.WINDOW_MINIMIZED;
+    }
+    var launch_display = handler.get_launch_display();
+    if (launch_display >= 0 && pi.displays && launch_display < pi.displays.length && pi.current_display != launch_display) {
+        enterSingleDisplay(launch_display);
+        return;
+    }
+    applyMultiMonitorPreference();
+}
+
+function applyMultiMonitorPreference() {
+    if (multi_monitor_preference_applied) return;
+    if (!pi.displays || pi.displays.length < 2) return;
+    var mode = handler.get_app_option("multi-monitor-layout");
+    if (mode != "all" && mode != "separate") return;
+    multi_monitor_preference_applied = true;
+    if (mode == "all") enterAllDisplays();
+    else openMonitorWindows();
+}
+
+function openMonitorWindows() {
+    if (!pi.displays || pi.displays.length < 2) return;
+    var keep = pi.current_display >= 0 ? pi.current_display : 0;
+    if (pi.current_display == -1) {
+        enterSingleDisplay(keep);
+    }
+    var screens = view.screens;
+    var opened = 0;
+    var cascade = 0;
+    for (var i = 0; i < pi.displays.length; i++) {
+        if (i == keep) continue;
+        opened++;
+        var monitor = (view.screen + opened) % screens;
+        if (monitor == view.screen) handler.open_display_window(i, -1, ++cascade);
+        else handler.open_display_window(i, monitor, 0);
+    }
+}
+
+handler.updateDisplays = function(v) {
+    pi.displays = v;
+    header.update();
+    if (is_port_forward) {
+        view.windowState = View.WINDOW_MINIMIZED;
+    }
+}
+
+handler.setMultipleWindowsSession = function(sessions) {
+    // It will be covered by other message box if the timer is not used, 
+    self.timer(1000ms, function() {
+        msgbox("multiple-sessions-nocancel", translate("Multiple Windows sessions found"), <MultipleSessionComponent sessions={sessions} />, "", function(res) {
+            if (res && res.sid) {
+                handler.set_selected_windows_session_id("" + res.sid);
+            }
+        }, 230);
+    });
+}
+
+handler.setCurrentDisplay = function(v) {
+    if (multi_display_mode) return;
+    pi.current_display = v;
+    if (kvm_on) return;
+    handler.switch_display(v);
+    header.update();
+    if (is_port_forward) {
+        view.windowState = View.WINDOW_MINIMIZED;
+    }
+}
+
+handler.screenshot = function(msg) {
+    screenshot_auto_clipboard = false;
+    if (msg) return;
+    handler.handle_screenshot("1");
+    var btn = $(button#screenshot);
+    if (btn) {
+        btn.style.set { color: "#28A745" };
+        self.timer(1800ms, function() {
+            btn.style.set { color: undefined };
+        });
+    }
+    var body = $(body);
+    if (body) {
+        var existing = $(div.screenshot-toast);
+        if (existing) try { existing.detach(); } catch(e) {}
+        body.$append(<div .screenshot-toast>{translate("Screenshot saved to clipboard")}</div>);
+        self.timer(1800ms, function() {
+            var t = $(div.screenshot-toast);
+            if (t) try { t.detach(); } catch(e) {}
+        });
+    }
+}
+
+function updatePrivacyMode() {
+	var el = $(button#privacy-mode);
+    if (el) {
+        var supported = handler.is_privacy_mode_supported();
+        if (!supported) {
+            el.style["display"]="none";
+        } else {
+            el.style["display"]="block";
+            var value = handler.get_toggle_option("privacy-mode");
+            if (privacyon != value) {
+                privacyon = value;
+                header.update();
+            }
+            var bi = $(li#block-input);
+            if (bi) {
+                bi.state.disabled = value;
+            }
+        }
+    }
+}
+handler.updatePrivacyMode = updatePrivacyMode;
+
+function togglePrivacyMode(privacy_id) {
+    var supported = handler.is_privacy_mode_supported();
+    if (!supported) {
+        msgbox("nocancel", translate("Privacy mode"), translate("Unsupported"), "", function() { });
+    } else {
+        handler.toggle_option(privacy_id);
+    }
+}
+
+function canBlockInput() {
+    return pi.sas_enabled || pi.block_input;
+}
+
+function toggleBlockInput() {
+    if (!canBlockInput()) {
+        msgbox("nocancel", translate("Block user input"), translate("Install or update the app on the remote computer to use this."), "", function() { });
+        return;
+    }
+    input_blocked = !input_blocked;
+    handler.toggle_option(input_blocked ? "block-input" : "unblock-input");
+    header.update();
+}
+
+function toggleQualityMonitor(name) {
+    var show = handler.get_toggle_option(name);
+    if (show) {
+        $(#quality-monitor).style.set{ display: "none" };
+    } else {
+        $(#quality-monitor).style.set{ display: "block" };
+    }
+    handler.toggle_option(name);
+    toggleMenuState();
+}
+
+function toggleI444(name) {
+    handler.toggle_option(name);
+    handler.update_supported_decodings();
+    toggleMenuState();
+}
+
+handler.updateBlockInputState = function(on) {
+    input_blocked = on;
+    header.update();
+}
+
+handler.switchDisplay = function(i) {
+    if (multi_display_mode) return;
+    pi.current_display = i;
+    header.update();
+}
+
+function updateWindowToolbarPosition() {
+    if (is_osx) return;
+    self.timer(1ms, function() {
+        var el = $(div.window-toolbar);
+        var w1 = el.box(#width, #border);
+        var w2 = $(header).box(#width, #border);
+        var x = (w2 - w1) / 2 / scaleFactor;
+        el.style.set {
+            left: x + "px",
+            display: "block",
+        };
+    });
+}
+
+view.on("size", function() {
+    // ensure size is done, so add timer
+    self.timer(1ms, function() {
+        updateWindowToolbarPosition();
+        adaptDisplay();
+    });
+});
+
+handler.newMessage = function(text) {
+    chat_msgs.push({text: text, name: pi.username || "", time: getNowStr()});
+    startChat();
+}
+
+function sendMsg(text) {
+    chat_msgs.push({text: text, name: "me", time: getNowStr()});
+    handler.send_chat(text);
+    if (chatbox) chatbox.refresh();
+}
+
+var chatbox;
+function startChat() {
+    if (kvm_on) {
+        kvm_missed_chat = true;
+        return;
+    }
+    if (chatbox) {
+        chatbox.windowState = View.WINDOW_SHOWN;
+        chatbox.windowTopmost = true;
+        chatbox.windowTopmost = false;
+        chatbox.refresh();
+        return;
+    }
+    var icon = handler.get_icon();
+    var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+    var w = scaleIt(300);
+    var h = scaleIt(400);
+    var x = (sx + sw - w) / 2;
+    var y = sy + scaleIt(80);
+    var params = {
+        type: View.FRAME_WINDOW,
+        x: x,
+        y: y,
+        width: w,
+        height: h,
+        client: true,
+        parameters: { msgs: chat_msgs, callback: sendMsg, icon: icon, dark: isDarkTheme(), onclose: function() { chatbox = null; } },
+        caption: get_id(),
+    };
+    var html = handler.get_chatbox();
+    if (html) params.html = html;
+    else params.url = self.url("chatbox.html");
+    chatbox = view.window(params);
+}
+
+var _base_msgbox_retry = handler.msgbox_retry;
+handler.msgbox_retry = function(type, title, text, link, hasRetry) {
+    if (type == "error" && !hasRetry && chatbox) {
+        chatbox.windowState = View.WINDOW_HIDDEN;
+    }
+    _base_msgbox_retry(type, title, text, link, hasRetry);
+}
+
+handler.handleLocalShortcut = function(name) {
+    if (name == "screenshot") {
+        if (handler.is_screenshot_supported()) {
+            screenshot_auto_clipboard = true;
+            handler.take_screenshot(screenshotDisplay(), "");
+        }
+    } else if (name == "record") {
+        if (!is_view_camera && recording_enabled) {
+            handler.record_screen(!recording);
+            header.update();
+        }
+    } else if (name == "transfer") {
+        if (!is_view_camera) handler.transfer_file();
+    } else if (name == "fullscreen") {
+        toggleFullscreen();
+    }
+}
+
+handler.setConnectionType = function(secured, direct, security_numbers, avatar_image) {
+    header.secure_connection = secured;
+    header.direct_connection = direct;
+    header.security_numbers = security_numbers;
+    header.avatar_image = avatar_image;
+    header.update();
+}
+
+handler.updateRecordStatus = function(status) {
+    recording = status;
+    if (status) recording_failed = false;
+    header.update();
+}
+
+handler.updateRecordFailed = function(_) {
+    recording = false;
+    recording_failed = true;
+    header.update();
+}
+
+handler.portableServiceRunning = function(running) {
+    portable_service_running = running;
+    header.update();
+}
+
+function kvmShown() {
+    return !handler.is_display_child()
+        && (pi.platform == "Windows" || pi.platform == "Mac OS" || pi.platform == "Linux" || pi.platform == "FreeBSD")
+        && handler.kvm_available();
+}
+
+function startKvm(side) {
+    if (kvm_on || !KVM_SIDES[side]) return;
+    var res = handler.kvm_start(side, pi.current_display);
+    if (res == "permission") {
+        msgbox("custom", translate("KVM mode"), translate("kvm_permission_tip"), "", function(r=null) {
+            if (r != null) handler.kvm_open_settings();
+        });
+        return;
+    }
+    if (res == "taken") {
+        msgbox("nocancel", translate("KVM mode"), translate("This side is already in use by another session."), "", function() {});
+        return;
+    }
+    if (res) {
+        header.update();
+        return;
+    }
+    kvm_on = true;
+    if (chatbox) {
+        kvm_missed_chat = true;
+        chatbox.windowState = View.WINDOW_HIDDEN;
+        chatbox = null;
+    }
+    var hide = function() {
+        if (!kvm_on) return;
+        view.windowState = View.WINDOW_HIDDEN;
+        openKvmNotice(side);
+    };
+    if (view.windowState == View.WINDOW_FULL_SCREEN) {
+        kvm_fullscreen = true;
+        toggleFullscreen();
+        self.timer(is_osx ? 900ms : 100ms, hide);
+    } else {
+        hide();
+    }
+}
+
+function openKvmNotice(side) {
+    var remember = handler.kvm_remember_state(side);
+    kvm_notice = view.window({
+        type: View.FRAME_WINDOW,
+        width: scaleIt(380),
+        height: scaleIt(remember ? 340 : 220),
+        client: true,
+        parameters: {
+            name: get_id(),
+            side: KVM_SIDES[side],
+            hotkey: translate(is_osx ? "Control+Option+Esc" : "Ctrl+Alt+Esc"),
+            icon: handler.get_icon(),
+            dark: isDarkTheme(),
+            remember: remember,
+            saved_password: handler.kvm_saved_password(),
+            onremember: function(on) { handler.kvm_remember(side, on); },
+            onstop: function() { stopKvm(); },
+            onclose: function() { kvm_notice = null; stopKvm(); },
+        },
+        caption: translate("KVM mode"),
+        url: self.url("kvm.html"),
+    });
+    if (!kvm_notice) stopKvm("ended");
+}
+
+var kvm_sign_in_failed = false;
+function showKvmSignInFailed() {
+    if (kvm_sign_in_failed) return;
+    kvm_sign_in_failed = true;
+    handler.kvm_link_hang_up();
+    kvm_notice = view.window({
+        type: View.FRAME_WINDOW,
+        width: scaleIt(380),
+        height: scaleIt(200),
+        client: true,
+        parameters: {
+            name: get_id(),
+            message: translate("HopToDesk could not sign in to {} by itself, so it no longer reconnects to it. Connect to it with Remember password ticked, then turn on KVM mode again.").replace("{}", get_id()),
+            icon: handler.get_icon(),
+            dark: isDarkTheme(),
+            onstop: function() { closeKvmLink("sign-in"); },
+            onclose: function() { closeKvmLink("sign-in"); },
+        },
+        caption: translate("KVM mode"),
+        url: self.url("kvm.html"),
+    });
+    if (!kvm_notice) closeKvmLink("sign-in");
+}
+
+function stopKvm(reason = "stopped") {
+    if (kvm_link) {
+        closeKvmLink(reason);
+        return;
+    }
+    if (!kvm_on) return;
+    kvm_on = false;
+    handler.kvm_stop();
+    var notice = kvm_notice;
+    kvm_notice = null;
+    if (notice) {
+        try { notice.windowState = View.WINDOW_HIDDEN; } catch (e) {}
+    }
+    view.windowActivate = true;
+    if (kvm_fullscreen) {
+        kvm_fullscreen = false;
+        view.windowState = View.WINDOW_FULL_SCREEN;
+    }
+    if (multi_display_mode && pi.displays && pi.displays.length > 1) enterAllDisplays();
+    else enterSingleDisplay(pi.current_display >= 0 ? pi.current_display : 0);
+    header.update();
+    if (kvm_missed_chat) {
+        kvm_missed_chat = false;
+        startChat();
+    }
+}
+
+handler.kvmEvent = function(name) {
+    if (name == "stopped") stopKvm("ended");
+    else header.update();
+}
+
+var kvm_link_tries = 0;
+function startKvmLink() {
+    if (kvm_on) return;
+    if (!handler.kvm_available()) {
+        if (++kvm_link_tries > 50) closeKvmLink("not available");
+        else self.timer(200ms, startKvmLink);
+        return;
+    }
+    var res = handler.kvm_start(kvm_link, pi.current_display);
+    if (res) {
+        closeKvmLink(res);
+        return;
+    }
+    kvm_on = true;
+    if (kvm_link_remembered) openKvmNotice(kvm_link);
+}
+
+function closeKvmLink(reason) {
+    kvm_on = false;
+    handler.kvm_link_closed(reason);
+}
+
+function kvmLinkMsgbox(type, text) {
+    if (kvm_sign_in_failed) return;
+    if (kvm_link_remembered && (type.indexOf("password") >= 0 || type.indexOf("2fa") >= 0
+        || type.indexOf("wait-remote-accept") >= 0)) {
+        showKvmSignInFailed();
+        return;
+    }
+    if (type.indexOf("error") >= 0 || type.indexOf("password") >= 0 || type.indexOf("2fa") >= 0
+        || type.indexOf("login") >= 0 || type == "relay-hint") {
+        closeKvmLink(type + " " + text);
+    }
+}
+
+if (kvm_link) {
+    handler.msgbox = function(type, title, text, link = "", hasRetry = false) { kvmLinkMsgbox(type, text); };
+    handler.msgbox_retry = function(type, title, text, link, hasRetry) { kvmLinkMsgbox(type, text); };
+}

@@ -1,0 +1,56 @@
+function self.ready() {
+    centerize(scaleIt(520), scaleIt(300));
+    var root_element = self;
+    if (handler.get_option("allow-darktheme") == "Y") {
+        root_element.attributes.toggleClass("darktheme", true);
+        try { view.nativeTheme(true); } catch (e) {}
+    } else {
+        root_element.attributes.toggleClass("darktheme", false);
+        try { view.nativeTheme(false); } catch (e) {}
+    }
+}
+
+var attempts = 0;
+
+class Uninstall: Reactor.Component {
+    function render() {
+        return <div .installer>
+            <div .installer-header>
+                <div .installer-title>{translate('Uninstall')}</div>
+                <div .installer-subtitle>{handler.get_display_name()}</div>
+            </div>
+            <div .installer-body>
+                <div .field-label>{translate('Enter the uninstall code from your IT provider')}</div>
+                <input|text #code />
+                <div #error .field-error>{translate('That code is not correct.')}</div>
+            </div>
+            <div .installer-footer>
+                <div style="width:*;" />
+                <button .button #cancel .outline title={translate('Cancel')}>{translate('Cancel')}</button>
+                <button .button #submit .danger title={translate('Uninstall')}>{translate('Uninstall')}</button>
+            </div>
+        </div>;
+    }
+
+    event click $(#cancel) {
+        view.close();
+    }
+
+    event click $(#submit) {
+        if (attempts >= 5) return;
+        var code = $(#code).value || "";
+        if (handler.verify_uninstall_code(code)) {
+            for (var el in $$(button)) el.state.disabled = true;
+            handler.perform_uninstall();
+        } else {
+            attempts++;
+            $(#error).style.set{ visibility: "visible" };
+            if (attempts >= 5) {
+                $(#error).text = translate('Too many incorrect attempts. Try again later.');
+                $(#submit).state.disabled = true;
+            }
+        }
+    }
+}
+
+$(body).content(<Uninstall />);

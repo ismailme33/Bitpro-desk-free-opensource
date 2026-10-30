@@ -1,0 +1,1391 @@
+var remote_home_dir;
+var file_drag = null;
+var search_seq = 0;
+
+var svg_file = <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>;
+var svg_add_folder = <svg viewBox="0 0 443.29 443.29">
+<path d="m277.06 332.47h27.706v-55.412h55.412v-27.706h-55.412v-55.412h-27.706v55.412h-55.412v27.706h55.412z"/>
+<path d="m415.59 83.118h-202.06l-51.353-51.353c-2.597-2.597-6.115-4.058-9.794-4.058h-124.68c-15.274-1e-3 -27.706 12.431-27.706 27.705v332.47c0 15.273 12.432 27.706 27.706 27.706h387.88c15.273 0 27.706-12.432 27.706-27.706v-277.06c0-15.274-12.432-27.706-27.706-27.706zm0 304.76h-387.88v-332.47h118.94l51.354 51.353c2.597 2.597 6.115 4.058 9.794 4.058h207.79z"/>
+</svg>;
+var svg_trash = <svg viewBox="0 0 473.41 473.41">
+<path d="m443.82 88.765h-88.765v-73.971c0-8.177-6.617-14.794-14.794-14.794h-207.12c-8.177 0-14.794 6.617-14.794 14.794v73.971h-88.764v29.588h14.39l57.116 342.69c1.185 7.137 7.354 12.367 14.592 12.367h241.64c7.238 0 13.407-5.23 14.592-12.367l57.116-342.69h14.794c-1e-3 0-1e-3 -29.588-1e-3 -29.588zm-295.88-59.177h177.53v59.176h-177.53zm196.85 414.24h-216.58l-54.241-325.47h325.06z"/>
+<path transform="matrix(.064 -.998 .998 .064 -.546 19.418)" d="m-360.4 301.29h207.54v29.592h-207.54z"/>
+<path transform="matrix(.998 -.064 .064 .998 -.628 .399)" d="m141.64 202.35h29.592v207.54h-29.592z"/>
+</svg>;
+var svg_eye = <svg viewBox="0 0 24 24">
+<path d="m12 5c-5 0-9.3 3.1-11 7 1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 12c-3.9 0-7.4-2.2-9-5 1.6-2.8 5.1-5 9-5s7.4 2.2 9 5c-1.6 2.8-5.1 5-9 5z"/>
+<circle cx="12" cy="12" r="3"/>
+</svg>;
+var svg_arrow = <svg viewBox="0 0 482.24 482.24">
+<path d="m206.81 447.79-206.81-206.67 206.74-206.67 24.353 24.284-165.17 165.17h416.31v34.445h-416.31l165.24 165.24z"/>
+</svg>;
+var svg_home = <svg viewBox="0 0 476.91 476.91">
+<path d="m461.78 209.41-212.21-204.89c-6.182-6.026-16.042-6.026-22.224 0l-212.2 204.88c-3.124 3.015-4.888 7.17-4.888 11.512 0 8.837 7.164 16 16 16h28.2v224c0 8.837 7.163 16 16 16h112c8.837 0 16-7.163 16-16v-128h80v128c0 8.837 7.163 16 16 16h112c8.837 0 16-7.163 16-16v-224h28.2c4.338 0 8.489-1.761 11.504-4.88 6.141-6.354 5.969-16.483-0.384-22.624zm-39.32 11.504c-8.837 0-16 7.163-16 16v224h-112v-128c0-8.837-7.163-16-16-16h-80c-8.837 0-16 7.163-16 16v128h-112v-224c0-8.837-7.163-16-16-16h-28.2l212.2-204.88 212.28 204.88h-28.28z"/>
+</svg>;
+var svg_refresh = <svg viewBox="0 0 551.13 551.13">
+<path d="m482.24 310.01c0 113.97-92.707 206.67-206.67 206.67s-206.67-92.708-206.67-206.67c0-102.21 74.639-187.09 172.23-203.56v65.78l86.114-86.114-86.114-86.115v71.641c-116.65 16.802-206.67 117.14-206.67 238.37 0 132.96 108.16 241.12 241.12 241.12s241.12-108.16 241.12-241.12z"/>
+</svg>;
+var svg_search = <svg viewBox="0 0 655.278 655.024"><g transform="translate(-24.497 -195.01)"><path fill="currentColor" d="m649.96 847.92c-2.9592-1.3629-27.183-24.243-63.36-59.846-32.213-31.702-70.814-69.663-85.78-84.357l-27.21-26.717-4.7897 3.5287c-66.337 48.872-145.32 66.878-224.31 51.138-72.966-14.539-136.58-58.184-178.47-122.44-15.945-24.462-30.723-61.471-36.413-91.191-8.9404-46.696-6.2422-90.39 8.3388-135.04 13.39-41.003 34.756-75.42 66.479-107.09 74.506-74.377 183.71-99.89 284.22-66.397 62.352 20.777 117.67 65.579 150.79 122.12 38.716 66.101 46.59 147.55 21.43 221.66-9.9038 29.171-29.788 63.725-49.916 86.743l-7.0583 8.0717 3.0992 2.919c1.7046 1.6054 40.675 39.928 86.602 85.161 89.007 87.664 87.558 86.034 85.619 96.293-1.2888 6.8209-5.2313 12.041-11.321 14.989-6.7901 3.287-11.55 3.4093-17.952 0.46117zm-316.64-154.63c32.373-5.0481 61.075-15.115 86.553-30.358 47.942-28.683 83.505-72.09 100.89-123.14 35.043-102.91-6.4362-214.07-100.89-270.37-52.514-31.302-117.76-40.564-178.06-25.277-81.183 20.579-145.19 82.918-166.86 162.52-5.5757 20.478-7.445 35.423-7.445 59.52s1.8693 39.042 7.445 59.52c21.409 78.63 85.366 141.52 164.81 162.05 29.22 7.5511 66.493 9.756 93.564 5.5347z" stroke-width="1.28"/></g></svg>;
+var svg_clear = <svg viewBox="0 0 478.94 479.03"><path fill="currentColor" d="M217.488 478.45c-30.264-3.146-55.348-10.265-82.714-23.477C62.54 420.1 14.214 353.763 1.824 272.463c-2.412-15.82-2.434-50.027-.043-66.058 16.004-107.32 97.008-188.28 204.71-204.6 14.33-2.172 49.054-2.447 63-.498C323.95 8.915 371.3 32.2 409.03 69.927c37.697 37.698 61.125 85.349 68.605 139.54 1.943 14.08 1.68 48.804-.478 63-6.616 43.533-24.01 83.859-50.468 117-37.556 47.046-92.812 78.608-153.26 87.54-12.553 1.855-44.144 2.671-55.936 1.445zm42.144-32.045c15.649-1.602 29.895-4.63 44.856-9.531 78.146-25.604 133.49-94.718 141.94-177.26 6.245-60.993-16.1-123.3-59.94-167.14-55.797-55.797-139.4-75.365-213.52-49.98-77.69 26.609-131.51 94.14-140.42 176.19-4.761 43.843 6.392 91.899 30.274 130.44 41.468 66.926 119.01 105.26 196.82 97.29zm-138.69-80.346c-4.096-1.784-8.225-6.874-9.022-11.123-1.676-8.935-3.495-6.761 52.877-63.221l52.17-52.25-52.17-52.25c-56.544-56.632-54.56-54.249-52.834-63.451.924-4.923 6.905-10.904 11.828-11.828 9.201-1.726 6.819-3.71 63.451 52.834l52.25 52.169 52.25-52.169c56.632-56.544 54.25-54.56 63.451-52.834 4.923.923 10.904 6.905 11.828 11.828 1.726 9.201 3.71 6.818-52.834 63.451l-52.169 52.25 52.17 52.25c56.543 56.632 54.56 54.249 52.833 63.451-.923 4.923-6.905 10.904-11.828 11.828-9.201 1.726-6.818 3.71-63.455-52.838l-52.255-52.173-51.745 51.696c-28.496 28.469-53.01 52.166-54.56 52.742-3.766 1.4-8.515 1.26-12.234-.36z"/></svg>;
+var svg_cancel = <svg .cancel viewBox="0 0 612 612"><polygon points="612 36.004 576.52 0.603 306 270.61 35.478 0.603 0 36.004 270.52 306.01 0 576 35.478 611.4 306 341.41 576.52 611.4 612 576 341.46 306.01"/></svg>;
+var svg_continue = <svg .continue t="1652493728825" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="793" ne="0.8429451094012732" width="200" height="200"><path d="M458.69056 948.9408v74.39872c-102.4512-10.22464-196.25472-51.00544-272.1024-113.024l52.2752-52.2752c62.09024 48.87552 137.58464 81.39776 219.8272 90.89536z m562.47296-434.70848c0 263.99744-202.6496 482.9696-460.06784 509.0304v-74.5472c216.6272-25.99424 385.95584-211.73248 385.95584-435.072 0-223.27296-169.32352-409.00096-385.95584-434.9952V5.19168c257.42336 26.07104 460.06784 245.0432 460.06784 509.04064zM166.24128 785.83296l-52.13696 52.14208C50.82112 760.9088 9.51808 665.20576 0 560.67584h73.36448c9.1136 84.41856 42.44992 161.85344 92.8768 225.15712zM113.77664 190.88384l51.65056 51.6608C117.12 303.5392 84.64384 377.56928 74.3424 458.2656H0.95744C12.032 357.632 52.60288 265.53344 113.77664 190.88384zM458.69056 5.12v73.30304c-82.69312 9.55392-158.5664 42.37824-220.8512 91.6992L186.17856 118.4768C262.10304 56.2688 356.06528 15.36 458.69568 5.12z" p-id="794"></path><path d="M652.8 512l-276.48 166.4v-332.8z" p-id="795"></path></svg>;
+var svg_computer = <svg .computer viewBox="0 0 480 480">
+<g>
+<path fill="#2C8CFF" d="m276 395v11.148c0 2.327-1.978 4.15-4.299 3.985-21.145-1.506-42.392-1.509-63.401-0.011-2.322 0.166-4.3-1.657-4.3-3.985v-11.137c0-2.209 1.791-4 4-4h64c2.209 0 4 1.791 4 4zm204-340v288c0 17.65-14.35 32-32 32h-416c-17.65 0-32-14.35-32-32v-288c0-17.65 14.35-32 32-32h416c17.65 0 32 14.35 32 32zm-125.62 386.36c-70.231-21.843-158.71-21.784-228.76 0-4.22 1.31-6.57 5.8-5.26 10.02 1.278 4.085 5.639 6.591 10.02 5.26 66.093-20.58 151.37-21.125 219.24 0 4.22 1.31 8.71-1.04 10.02-5.26s-1.04-8.71-5.26-10.02z"/>
+</g>
+</svg>;
+
+function getSize(type, size) {
+  if (!size) {
+    if (type <= 3) return "";
+    return "0B";
+  }
+  size = size.toFloat();
+  var toFixed = function(size) {
+    size = (size * 100).toInteger();
+    var a = (size / 100).toInteger();
+    if (size % 100 == 0) return a;
+    if (size % 10 == 0) return a + '.' + (size % 10);
+    var b = size % 100;
+    if (b < 10) b = '0' + b;
+    return a + '.' + b;
+  }
+  if (size < 1024) return size.toInteger() + "B";
+  if (size < 1024 * 1024) return toFixed(size / 1024) + "K";
+  if (size < 1024 * 1024 * 1024) return toFixed(size / (1024 * 1024)) + "M";
+  return toFixed(size / (1024 * 1024 * 1024)) + "G";
+}
+
+function getParentPath(is_remote, path) {
+  var sep = handler.get_path_sep(is_remote);
+  var res = path.lastIndexOf(sep);
+  if (res <= 0) return "/";
+  return path.substr(0, res);
+}
+
+function getFileName(is_remote, path) {
+  var sep = handler.get_path_sep(is_remote);
+  var res = path.lastIndexOf(sep);
+  return path.substr(res + 1);
+}
+
+function getExt(name) {
+  if (name.indexOf(".") == 0) {
+    return "";
+  }
+  var i = name.lastIndexOf(".");
+  if (i > 0) return name.substr(i + 1);
+  return "";
+}
+
+class JobTable: Reactor.Component {
+  this var jobs = [];
+  this var job_map = {};
+
+  function render() {
+    var me = this;
+    var rows = this.jobs.map(function(job, i) { return me.renderRow(job, i); });
+    return <section>
+      {this.jobs.length == 0
+        ? <div .jobs-empty>
+            <div .jobs-empty-inner>
+              <div .jobs-empty-icon>{svg_file}</div>
+              <div>{translate('File transfers appear here')}</div>
+            </div>
+          </div>
+        : <table .has_current .job-table>
+            <tbody key={rows.length}>
+            {rows}
+            </tbody>
+          </table>}
+      {this.jobs.length > 0 && this.hasClearable()
+        ? <div .job-toolbar-bottom><div .clear-finished .button tabindex="0">{translate('Clear')}</div></div>
+        : ""}
+    </section>;
+  }
+
+  function hasRunning() {
+    for (var i = 0; i < this.jobs.length; ++i) {
+      var job = this.jobs[i];
+      if (!job.finished && !job.err) return true;
+    }
+    return false;
+  }
+
+  function hasClearable() {
+    for (var i = 0; i < this.jobs.length; ++i) {
+      if (this.jobs[i].finished || this.jobs[i].err) return true;
+    }
+    return false;
+  }
+
+  event click $(.clear-finished) {
+    var remaining = [];
+    for (var i = 0; i < this.jobs.length; ++i) {
+      var job = this.jobs[i];
+      if (job.finished || job.err) delete this.job_map[job.id];
+      else remaining.push(job);
+    }
+    this.jobs = remaining;
+    this.update();
+  }
+    
+  event click $(svg.cancel) (_, me) {
+    var job = this.jobs[me.parent.parent.index];
+    var id = job.id;
+    handler.cancel_job(id);
+    delete this.job_map[id];
+    var i = -1;
+    this.jobs.map(function(job, idx) {
+      if (job.id == id) i = idx;
+    });
+    this.jobs.splice(i, 1);
+    this.update();
+    var is_remote = job.is_remote;
+    if (job.type != "del-dir") is_remote = !is_remote;
+    refreshDir(is_remote);
+  }
+
+  event click $(svg.continue) (_, me) {
+    var job = this.jobs[me.parent.parent.parent.index];
+    var id = job.id;
+    this.continueJob(id);
+    this.update();
+  }
+
+  function clearAllJobs() {
+    this.jobs = [];
+    this.job_map = {};
+    this.update();
+  }
+
+  function send(path, is_remote) {
+    var to;
+    var show_hidden;
+    if (is_remote) {
+      to = file_transfer.local_folder_view.fd.path;
+      show_hidden = file_transfer.remote_folder_view.show_hidden;
+    } else {
+      to = file_transfer.remote_folder_view.fd.path;
+      show_hidden = file_transfer.local_folder_view.show_hidden;
+    }
+    if (!to) return;
+    to += handler.get_path_sep(!is_remote) + getFileName(is_remote, path);
+    var id = handler.get_next_job_id();
+    this.jobs.push({ type: "transfer",
+                     id: id, path: path, to: to,
+                     include_hidden: show_hidden,
+                     is_remote: is_remote,
+                     is_last: false
+                    });
+    this.job_map[id] = this.jobs[this.jobs.length - 1];
+    handler.send_files(id, 0, path, to, 0, show_hidden, is_remote);
+    var self = this;
+    self.timer(30ms, function() { self.update(); });
+  }
+
+  function addJob(id, path, to, file_num, show_hidden, is_remote, auto_start) {
+    var job = { type: "transfer",
+    id: id, path: path, to: to,
+    include_hidden: show_hidden,
+    is_remote: is_remote, is_last: true, file_num: file_num };
+    this.jobs.push(job);
+    this.job_map[id] = this.jobs[this.jobs.length - 1];
+    handler.update_next_job_id(id + 1);
+    handler.add_job(id, 0, path, to, file_num, show_hidden, is_remote);
+    if (auto_start) {
+      this.continueJob(id);
+      this.update();
+    }
+    stdout.println(JSON.stringify(job));
+  }
+
+  function continueJob(id) {
+    var job = this.job_map[id];
+    if (job == null || !job.is_last){
+      return;
+    }
+    job.is_last = false;
+    handler.resume_job(job.id, job.is_remote);
+  }
+
+  function addDelDir(path, is_remote) {
+    var id = handler.get_next_job_id();
+    this.jobs.push({ type: "del-dir", id: id, path: path, is_remote: is_remote });
+    this.job_map[id] = this.jobs[this.jobs.length - 1];
+    this.update();
+  }
+
+  function addDelFile(path, is_remote) {
+    var id = handler.get_next_job_id();
+    this.jobs.push({ type: "del-file", id: id, path: path, is_remote: is_remote });
+    this.job_map[id] = this.jobs[this.jobs.length - 1];
+    this.update();
+  }
+
+  function confirmDeletePolling(is_remote) {
+    for(var i=0;i<this.jobs.length;++i){
+      var job = this.jobs[i];
+      if(job.confirmed){
+        continue;
+      }
+      if(job.type == "del-file"){
+        confirmDelete(job.id, job.path, job.is_remote);
+        job.confirmed = true;
+        return;
+      }else if (job.type == "del-dir"){
+        // TODO: include_hidden is always true
+        handler.remove_dir_all(job.id, job.path, job.is_remote, true);
+        job.confirmed = true;
+        return;
+      }
+    }
+    // polling finish 
+    if (is_remote) file_transfer.remote_folder_view.table.resetCurrent();
+    else file_transfer.local_folder_view.table.resetCurrent();
+  }
+
+  function cancelDeletePolling() {
+    for(var i=0;i<this.jobs.length;++i){
+      var job = this.jobs[i];
+      if(job.confirmed){
+        continue;
+      }
+      // set confirmed true, prevent other polling action
+      if(job.type == "del-file" || job.type == "del-dir"){
+        job.confirmed = true;
+        job.err = "cancel"
+      }
+    }
+    this.update();
+  }
+
+  function getSvg(job) {
+    if (job.type == "transfer") {
+      return svg_send;
+    } else if (job.type == "del-dir" || job.type == "del-file") {
+      return svg_trash;
+    }
+  }
+
+  function getStatus(job) {
+    if (job.type == "del-file"){
+      if (job.err) {
+        if (job.err == "cancel") return translate("Cancel");
+      } else {
+        if (job.finished) return translate("Finished");
+        else return translate("Waiting");
+      }
+    }
+    if (!job.entries) return translate("Waiting");
+    var i = job.file_num + 1;
+    var n = job.num_entries || job.entries.length;
+    if (i > n) i = n;
+    var res = i + ' / ' + n + " " + translate("files");
+    if (job.total_size > 0) {
+      var s = getSize(0, job.finished_size);
+      if (s) s += " / ";
+      res += ", " + s + getSize(0, job.total_size);
+    }
+    // below has problem if some file skipped
+    var percent = job.total_size == 0 ? 100 : (100. * job.finished_size / job.total_size).toInteger(); // (100. * i / (n || 1)).toInteger();
+    if (job.finished) percent = '100';
+    if (percent) res += ", " + percent + "%";
+    if (job.err && job.err != "skipped" && job.err != "cancel") {
+      return translate("Failed") + ": " + job.err;
+    }
+    if (job.finished) {
+      if (job.err == "skipped") {
+        res = translate("Skipped") + " " + res;
+      } else {
+        res = translate("Finished") + " " + res;
+      }
+    }
+    if (job.speed) res += ", " + getSize(0, job.speed) + "/s";
+    return res;
+  }
+
+  function updateJob(job) {
+    var el = this.select("div[id=s" + job.id + "]");
+    if (el) {
+      el.text = this.getStatus(job);
+      var isErr = job.err && job.err != "skipped" && job.err != "cancel";
+      el.attributes["class"] = isErr ? "job-error" : "";
+    }
+    var bar = this.select("div.job-toolbar");
+    if (bar) bar.style.set { display: this.hasClearable() ? "block" : "none" };
+  }
+
+  function updateJobStatus(id, file_num = -1, err = null, speed = null, finished_size = 0) {
+    var job = this.job_map[id];
+    if (job.type == "del-file"){
+      job.finished = true;
+      job.err = err;
+      refreshDir(job.is_remote);
+      this.updateJob(job);
+      return;
+    }
+    if (!job) return;
+    if (file_num < job.file_num) return;
+    job.file_num = file_num;
+    var n = job.num_entries || job.entries.length;
+    job.finished = job.file_num >= n - 1 || err == "cancel" || err == "skipped";
+    job.finished_size = finished_size;
+    job.speed = speed || 0;
+    if (err !== null || !job.err) job.err = err;
+    this.updateJob(job);
+    if (job.type == "del-dir") {
+      if (job.finished) {
+        if (!err) {
+          handler.remove_dir(job.id, job.path, job.is_remote);
+          refreshDir(job.is_remote);
+          if (job.is_remote) file_transfer.remote_folder_view.table.resetCurrent();
+          else file_transfer.local_folder_view.table.resetCurrent();
+        }
+      } else if (!job.no_confirm) {
+        handler.confirm_delete_files(id, job.file_num + 1);
+      }
+    } else if (job.finished || file_num == -1) {
+      refreshDir(!job.is_remote);
+    }
+  }
+
+  function renderRow(job, i) {
+    var svg = this.getSvg(job);
+    return <tr class={job.is_remote ? "is_remote" : ""}><td>
+      {svg}
+      <div .text>
+        <div .path>{job.path}</div>
+        <div id={"s" + job.id} class={(job.err && job.err != "skipped" && job.err != "cancel") ? "job-error" : ""}>{this.getStatus(job)}</div>
+      </div>
+      <div class="svg_continue" style={job.is_last ? "" : "visibility: hidden"}>
+        {svg_continue}
+      </div>
+      {svg_cancel}
+    </td></tr>;
+  }
+}
+
+// Drag-and-drop helpers
+function getDropTargetView(xView, yView, sourceView) {
+  if (!file_transfer) return null;
+  var views = [file_transfer.local_folder_view, file_transfer.remote_folder_view];
+  for (var i = 0; i < views.length; i++) {
+    var v = views[i];
+    if (v === sourceView) continue;
+    var tbl = v.table;
+    if (!tbl) continue;
+    var (l, t, r, b) = tbl.box(#rect, #border, #view);
+    if (xView >= l && xView <= r && yView >= t && yView <= b) {
+      return v;
+    }
+  }
+  return null;
+}
+
+function clearDragFeedback() {
+  if (!file_transfer) return;
+  var views = [file_transfer.local_folder_view, file_transfer.remote_folder_view];
+  for (var i = 0; i < views.length; i++) {
+    if (views[i].table) views[i].table.attributes["drag-over"] = undefined;
+  }
+}
+
+class FolderView : Reactor.Component {
+    this var fd = {};
+    this var history = [];
+    this var show_hidden = false;
+    this var filter = "";
+    this var search = null;
+
+    function sep() {
+      return handler.get_path_sep(this.is_remote);
+    }
+
+    function this(params) {
+      this.is_remote = params.is_remote;
+      if (this.is_remote) {
+        this.show_hidden = !!handler.get_option("remote_show_hidden");
+      } else {
+        this.show_hidden = !!handler.get_option("local_show_hidden");
+      }
+      if (!this.is_remote) {
+        var dir = handler.get_option("local_dir");
+        if (dir) {
+          this.fd = handler.read_dir(dir, this.show_hidden);
+          if (this.fd) return;
+        }
+        this.fd = handler.read_dir(handler.get_home_dir(), this.show_hidden);
+      }
+    }
+
+    // sort predicate
+    function foldersFirst(a, b) {
+      if (a.type <= 3 && b.type > 3) return -1;
+      if (a.type > 3 && b.type <= 3) return +1;
+      if (a.name == b.name) return 0;
+      return a.name.toLowerCase().lexicalCompare(b.name.toLowerCase());
+    }
+
+    function render() 
+    {
+      return <section>
+            {this.renderTitle()}
+            {this.renderNavBar()}
+            {this.renderOpBar()}
+            {this.renderTable()}
+            {this.renderFooter()}
+            </section>;
+    }
+
+    function renderTitle() {
+      return <div .title>
+        {svg_computer}
+        <div .platform>{platformSvg(handler.get_platform(this.is_remote), "white")}</div>
+        <div><span>{translate(this.is_remote ? "Remote Computer" : "Local Computer")}</span></div>
+      </div>
+    }
+
+    function renderNavBar() {
+      return <div .toolbar .navbar>
+        <div .home .button tabindex="0" title={translate('Home')}>{svg_home}</div>
+        <div .goback .button tabindex="0" title={translate('Back')}>{svg_arrow}</div>
+        <div .goup .button tabindex="0" title={translate('Parent directory')}>{svg_arrow}</div>
+        {this.renderSelect()}
+        <div .refresh .button tabindex="0" title={translate('Refresh File')}>{svg_refresh}</div>
+      </div>;
+    }
+
+    function renderSelect() {
+      return <select editable .select-dir @{this.select_dir}>    
+        <option>/</option>    
+      </select>;
+    }
+
+    function renderOpBar() {
+      if (this.is_remote) {
+        return <div .toolbar .remote>
+          <div .send .button tabindex="0">{svg_send}<span>{translate('Receive')}</span></div>
+          {this.renderFilter()}
+          <div .add-folder .button tabindex="0" title={translate('Create Folder')}>{svg_add_folder}</div>
+          <div .trash .button tabindex="0" title={translate('Delete')}>{svg_trash}</div>
+          <div class={this.show_hidden ? "show-hidden button active" : "show-hidden button"} tabindex="0" title={translate('Show Hidden Files')}>{svg_eye}</div>
+        </div>;
+      }
+      return <div .toolbar>
+        <div .add-folder .button tabindex="0" title={translate('Create Folder')}>{svg_add_folder}</div>
+        <div .trash .button tabindex="0" title={translate('Delete')}>{svg_trash}</div>
+        <div class={this.show_hidden ? "show-hidden button active" : "show-hidden button"} tabindex="0" title={translate('Show Hidden Files')}>{svg_eye}</div>
+        {this.renderFilter()}
+        <div .send .button tabindex="0"><span>{translate('Send')}</span>{svg_send}</div>
+      </div>;
+    }
+
+    function renderFilter() {
+      var me = this;
+      var value = this.filter;
+      self.timer(1ms, function() {
+        if (!me.filter_input || me.filter_input === view.focus) return;
+        if (me.filter_input.value == value) return;
+        me.filter_input.value = value;
+      });
+      return <div .file-filter>
+        <span .search-icon>{svg_search}</span>
+        <input|text @{this.filter_input} title={translate('Search')} novalue={translate('Search')} />
+        {value && <span .clear-input>{svg_clear}</span>}
+      </div>;
+    }
+
+    function setFilter(v) {
+      if (v == this.filter && !this.search) return;
+      this.filter = v;
+      this.search = null;
+      this.update();
+      var me = this;
+      self.timer(1ms, function() { me.get_updated(); });
+    }
+
+    function startSearch() {
+      var q = this.filter;
+      if (!q || !this.fd || !this.fd.path) return;
+      var id = ++search_seq;
+      this.search = { id: id, pending: true, entries: null, truncated: false };
+      var me = this;
+      if (this.is_remote) {
+        handler.search_remote_dir(id, this.fd.path, q, this.show_hidden);
+        self.timer(20s, function() {
+          if (me.search && me.search.id == id && me.search.pending) {
+            me.search = null;
+            me.update();
+            self.timer(1ms, function() { me.get_updated(); });
+            handler.msgbox("custom-error", "Search", translate('search_unsupported_tip'));
+          }
+        });
+      } else {
+        handler.search_dir(id, this.fd.path, q, this.show_hidden);
+      }
+      this.update();
+      self.timer(1ms, function() { me.get_updated(); });
+    }
+
+    function applySearchResults(res) {
+      if (!this.search || res.id != this.search.id) return;
+      this.search.pending = false;
+      this.search.entries = res.entries || [];
+      this.search.truncated = !!res.truncated;
+      this.update();
+      var me = this;
+      self.timer(1ms, function() { me.get_updated(); });
+    }
+
+    function searchActive() {
+      return !!(this.search && this.search.entries !== null && !this.search.pending);
+    }
+
+    event change $(div.file-filter input) (_, el) {
+      this.setFilter(el.value.trim().toLowerCase());
+    }
+
+    event keydown $(div.file-filter input) (evt) {
+      if (evt.keyCode == Event.VK_ESCAPE) {
+        this.setFilter("");
+        return true;
+      }
+      if (evt.keyCode == Event.VK_RETURN) {
+        this.startSearch();
+        return true;
+      }
+      return false;
+    }
+
+    event click $(div.file-filter span.clear-input) {
+      this.setFilter("");
+    }
+
+    function get_updated() {
+      this.table.sortRows(false);
+      if (this.fd && this.fd.path && this.select_dir.value != this.fd.path) {
+        this.select_dir.value = this.fd.path;
+      }
+      this.updateFooter();
+    }
+
+    function itemsText() {
+      if (this.search) {
+        if (this.search.pending) return translate('Searching');
+        var n = this.search.entries.length;
+        if (n == 0) return translate('No results');
+        return n + (this.search.truncated ? "+ " : " ") + translate('items');
+      }
+      var all = this.listedEntries().length;
+      if (!this.filter) return all + " " + translate('items');
+      return this.visibleEntries().length + " / " + all + " " + translate('items');
+    }
+
+    function renderFooter() {
+      return <div .pane-footer @{this.footer}>{this.itemsText()}</div>;
+    }
+
+    function updateFooter() {
+      if (!this.footer) return;
+      var text = this.itemsText();
+      var rows = this.table.getCurrentRows();
+      var m = 0;
+      var total = 0.0;
+      if (rows) {
+        for (var i = 0; i < rows.length; ++i) {
+          var name = rows[i][1].text;
+          if (!name || name == "..") continue;
+          m += 1;
+          total += (rows[i][3].attributes["value"] || "0").toFloat();
+        }
+      }
+      if (m > 0) {
+        text += ", " + m + " " + translate('Selected');
+        if (total > 0) text += " (" + getSize(0, total) + ")";
+      }
+      this.footer.text = text;
+      var send = this.select("div.send");
+      if (send) {
+        if (m == 0) send.attributes.addClass("noselection");
+        else send.attributes.removeClass("noselection");
+      }
+    }
+
+    function listedEntries() {
+      return (this.fd.entries || []).filter(function(e) {
+        return !(e.name && e.name.length > 7
+                 && e.name.substr(e.name.length - 7) == ".digest");
+      });
+    }
+
+    function visibleEntries() {
+      var entries = this.listedEntries();
+      var f = this.filter;
+      if (!f) return entries;
+      return entries.filter(function(e) {
+        return e.name && e.name.toLowerCase().indexOf(f) >= 0;
+      });
+    }
+
+    function renderTable() {
+      var fd = this.fd;
+      var searching = this.searchActive();
+      var entries = searching
+        ? this.search.entries.filter(function(e) { return true; })
+        : this.visibleEntries();
+      var table = this.table;
+      if (!table || !table.sortBy) {
+        entries.sort(this.foldersFirst);
+      }
+      var me = this;
+      var path = fd.path;
+      if (!searching && path != "/" && path) {
+        entries = [{ name: "..", type: 1 }].concat(entries);
+      }
+      var rows = entries.map(function(e) { return me.renderRow(e); });
+      var is_empty = fd.path && (fd.entries || []).length == 0;
+      var id = (this.is_remote ? "remote" : "local") + "-folder-view";
+      return <div .table-wrap>
+      <table @{this.table} .folder-view .has_current id={id}>
+        <thead>    
+          <tr><th></th><th .sortable>{translate('Name')}</th><th .sortable>{translate('Modified')}</th><th .sortable>{translate('Size')}</th></tr>    
+        </thead>      
+        <tbody> 
+          {rows}
+        </tbody>
+        {is_osx
+          ? <menu.context id={id}>
+              <li #ctx-send>{translate(this.is_remote ? 'Receive' : 'Send')}</li>
+              <li #ctx-rename>{translate('Rename')}</li>
+              <li #ctx-delete>{translate('Delete')}</li>
+              <hr/>
+              <li #switch-hidden class={this.show_hidden ? "selected" : ""}><span>{svg_checkmark}</span>{translate('Show Hidden Files')}</li>
+            </menu>
+          : <popup>
+              <menu.context id={id}>
+                <li #ctx-send>{translate(this.is_remote ? 'Receive' : 'Send')}</li>
+                <li #ctx-rename>{translate('Rename')}</li>
+                <li #ctx-delete>{translate('Delete')}</li>
+                <hr/>
+                <li #switch-hidden class={this.show_hidden ? "selected" : ""}><span>{svg_checkmark}</span>{translate('Show Hidden Files')}</li>
+              </menu>
+            </popup>}
+      </table>
+      {is_empty ? <div .empty-hint>{translate('Empty Directory')}</div> : ""}
+      </div>;
+    }
+
+    function joinPath(name) {
+      var path = this.fd.path;
+      if (path == "/") {
+        if (this.sep() == "/") return this.sep() + name;
+        else return name;
+      }
+      return path + (path[path.length - 1] == this.sep() ? "" : this.sep()) + name;
+    }
+    
+    function attached() {
+      var me = this;
+      this.table.onRowDoubleClick = function (row) {
+        var type = row[0].attributes["type"];
+        var name = row[1].text;
+        if (name == "..") {
+          me.table.resetCurrent();
+          me.goto(getParentPath(me.is_remote, me.fd.path), true);
+          return;
+        }
+        if (type > 3) {
+          file_transfer.job_table.send(me.joinPath(name), me.is_remote);
+          return;
+        }
+        var path = me.joinPath(name);
+        me.table.resetCurrent();
+        me.goto(path, true);
+      }
+      this.table.onRowClick = function(row, reason) {
+        self.timer(1ms, function() { me.updateFooter(); });
+      }
+      this.get_updated();
+      this.setupDragDrop();
+    }
+
+    // Drag detection via document-level mouse subscription (ddm2.tis pattern).
+    // Uses the sinking phase so events are seen BEFORE tbody's select-multiple
+    // behavior can consume them.
+    function setupDragDrop() {
+      var me = this;
+      var startX = 0, startY = 0;
+      var pending = false;
+      var DRAG_THRESHOLD = 5;
+      var _SINKING = Event.SINKING || 0x8000;
+
+      self.subscribe(function(evt) {
+        // Sinking phase of MOUSE_DOWN - record start position
+        if (evt.type == (Event.MOUSE_DOWN | _SINKING)) {
+          var row = evt.target.$p(tbody>tr);
+          if (!row) return;
+          var table = row.$p(table);
+          if (table !== me.table) return;
+          if (row[1] && row[1].text == "..") return;
+          startX = evt.xView;
+          startY = evt.yView;
+          pending = true;
+          return;
+        }
+        // Sinking phase of MOUSE_MOVE - check drag threshold
+        if (evt.type == (Event.MOUSE_MOVE | _SINKING)) {
+          if (!pending) return;
+          var dx = evt.xView - startX;
+          var dy = evt.yView - startY;
+          if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD) {
+            pending = false;
+            me.doDragDrop(evt.xView, evt.yView);
+          }
+          return;
+        }
+        // Sinking phase of MOUSE_UP - cancel pending
+        if (evt.type == (Event.MOUSE_UP | _SINKING)) {
+          pending = false;
+          if (evt.target.$p(table) === me.table) {
+            self.timer(1ms, function() { me.updateFooter(); });
+          }
+          return;
+        }
+      }, Event.MOUSE);
+    }
+
+    // Execute the drag operation: capture mouse, run modal loop, process drop.
+    function doDragDrop(mouseX, mouseY) {
+      var me = this;
+      var rows = this.getCurrentRows();
+      if (!rows || rows.length == 0) return;
+
+      file_drag = { source: me, rows: rows };
+      var dropTarget = null;
+      var _SINKING = Event.SINKING || 0x8000;
+
+      // Create ghost image from the current row
+      var currentRow = me.table.getCurrentRow();
+      var ghostImage = null;
+      var ghostW = 0, ghostH = 0;
+      var offsetX = 0, offsetY = 0;
+      var dragX = mouseX, dragY = mouseY;
+      var container = self.$(body) || self;
+      var fileCount = rows.length;
+
+      if (currentRow) {
+        ghostW = currentRow.box(#width, #border);
+        ghostH = currentRow.box(#height, #border);
+        // Limit ghost width to reasonable size
+        if (ghostW > 300) ghostW = 300;
+        try {
+          ghostImage = new Image(ghostW, ghostH, currentRow);
+        } catch(e) {
+          ghostImage = null;
+        }
+        // Offset so ghost appears near cursor
+        var (rl, rt, rr, rb) = currentRow.box(#rect, #border, #view);
+        offsetX = mouseX - rl;
+        offsetY = mouseY - rt;
+      }
+
+      // Set up ghost painting overlay
+      if (ghostImage) {
+        container.paintForeground = function(gfx) {
+          var x = dragX - offsetX;
+          var y = dragY - offsetY;
+          // Draw stacked effect for multiple files
+          if (fileCount > 1) {
+            gfx.blendImage(ghostImage, x + 4, y + 4, ghostW, ghostH, 0.3);
+            gfx.blendImage(ghostImage, x + 2, y + 2, ghostW, ghostH, 0.45);
+          }
+          // Draw main ghost
+          gfx.blendImage(ghostImage, x, y, ghostW, ghostH, 0.7);
+        };
+        container.refresh();
+      }
+
+      // Track mouse position during the modal drag loop
+      var dragMoveHandler = function(evt) {
+        if (evt.type == Event.MOUSE_MOVE
+            || evt.type == (Event.MOUSE_MOVE | _SINKING)) {
+          dragX = evt.xView;
+          dragY = evt.yView;
+          clearDragFeedback();
+          dropTarget = getDropTargetView(evt.xView, evt.yView, me);
+          if (dropTarget) {
+            dropTarget.table.attributes["drag-over"] = "";
+          }
+          if (ghostImage) container.refresh();
+        }
+      };
+      self.subscribe(dragMoveHandler, Event.MOUSE);
+
+      // Capture all mouse events and block until mouse button is released
+      me.table.capture(#strict);
+      view.doEvent(#untilMouseUp);
+      me.table.capture(false);
+
+      self.unsubscribe(dragMoveHandler);
+
+      // Clean up ghost image
+      container.paintForeground = undefined;
+      container.refresh();
+
+      // Process the drop
+      if (dropTarget) {
+        for (var i = 0; i < rows.length; i++) {
+          file_transfer.job_table.send(rows[i][0], me.is_remote);
+        }
+      }
+
+      clearDragFeedback();
+      file_drag = null;
+    }
+
+    // OS file drop: accept files dragged from the OS file manager
+    // onto the remote panel to upload them (per shell-file-drop.htm).
+    event dragaccept $(table.folder-view) (evt) {
+      if (evt.draggingDataType == #file && this.is_remote)
+        return true;
+      return false;
+    }
+
+    event dragenter $(table.folder-view) (evt) {
+      if (this.is_remote) {
+        this.table.attributes["drag-over"] = "";
+        return true;
+      }
+    }
+
+    event dragleave $(table.folder-view) (evt) {
+      this.table.attributes["drag-over"] = undefined;
+      return true;
+    }
+
+    event drop $(table.folder-view) (evt) {
+      this.table.attributes["drag-over"] = undefined;
+      if (this.is_remote && evt.draggingDataType == #file) {
+        var files = evt.dragging;
+        if (typeof files != #array) files = [files];
+        for (var i = 0; i < files.length; i++) {
+          file_transfer.job_table.send(files[i], false); // send local file to remote
+        }
+      }
+      return true;
+    }
+
+    function goto(path, push) {
+      //stdout.println("update folder files:");
+      if (!path) return;
+      if (this.sep() == "\\" && path.length == 2) { // windows drive
+        path += "\\";
+      }
+      if (path != this.fd.path) this.filter = "";
+      this.search = null;
+      if (push) this.pushHistory();
+      if (this.is_remote) {
+        handler.read_remote_dir(path, this.show_hidden);
+      } else {
+        var fd = handler.read_dir(path, this.show_hidden);
+        this.refresh({ fd: fd });
+      }
+    }
+
+    function refresh(data) {
+      if (!data.fd || !data.fd.path) return;
+      if (this.is_remote && !remote_home_dir) {
+        remote_home_dir = data.fd.path;
+      }
+      this.update(data);
+      this.get_updated();
+    }
+
+    function renderRow(entry) {
+      var path;
+      if (this.is_remote) {
+        path = handler.get_icon_path(entry.type, getExt(entry.name));
+      } else {
+        path = this.joinPath(entry.name);
+      }
+      var tm = entry.time ? new Date(entry.time.toFloat() * 1000.).toLocaleString() : 0;
+      return <tr role="option">
+        <td type={entry.type} filename={path}></td>
+        <td>{entry.name}</td>
+        <td value={entry.time || 0}>{tm || ""}</td>
+        <td value={entry.size || 0}>{getSize(entry.type, entry.size)}</td>
+      </tr>;
+    }
+
+    event click $(#switch-hidden) {
+      this.show_hidden = !this.show_hidden;
+      this.refreshDir();
+    }
+
+    event click $(div.show-hidden) {
+      this.show_hidden = !this.show_hidden;
+      this.refreshDir();
+    }
+
+    event click $(#ctx-send) {
+      var rows = this.getCurrentRows();
+      if (!rows || rows.length == 0) return;
+      for (var i = 0; i < rows.length; ++i) {
+        file_transfer.job_table.send(rows[i][0], this.is_remote);
+      }
+    }
+
+    event click $(#ctx-delete) {
+      this.deleteSelection();
+    }
+
+    function renameSelection() {
+      var row = this.getCurrentRow();
+      if (!row) return;
+      var path = row[0];
+      var old_name = getFileName(this.is_remote, path);
+      var me = this;
+      msgbox("custom", translate("Rename"), "<div .form> \
+            <div>" + translate("Please enter the new name") + ":</div> \
+            <div style=\"margin-bottom: 15px;\"><input|text(name) .outline-focus value=\"" + old_name + "\" /></div> \
+        </div>", "", function(res=null) {
+          if (!res) return;
+          if (!res.name) return;
+          var new_name = res.name.trim();
+          if (!new_name || new_name == old_name) return;
+          if (new_name.indexOf(me.sep()) >= 0) {
+            handler.msgbox("custom-error", "Rename", "Invalid name");
+            return;
+          }
+          var id = handler.get_next_job_id();
+          handler.rename_file(id, path, new_name, me.is_remote);
+          rename_jobs[id] = { is_remote: me.is_remote };
+        });
+    }
+
+    event click $(#ctx-rename) {
+      this.renameSelection();
+    }
+
+    function goUp() {
+      var path = this.fd.path;
+      if (!path || path == "/") return;
+      path = getParentPath(this.is_remote, path);
+      this.goto(path, true);
+    }
+
+    event click $(.goup) () {
+      this.goUp();
+    }
+
+    event click $(.goback) () {
+      var path = this.history.pop();
+      if (!path) return;
+      this.goto(path, false);
+    }
+
+    function deleteSelection() {
+      var rows = this.getCurrentRows();
+      if (!rows || rows.length == 0) return;
+
+      var items = [];
+      for (var i = 0; i < rows.length; ++i) {
+        items.push({ path: rows[i][0], type: rows[i][1] });
+      }
+
+      var is_remote = this.is_remote;
+      var me = this;
+      var count = items.length;
+      var msg = count == 1
+        ? translate('Are you sure you want to delete this file?') + "<div.ellipsis style=\"font-weight: bold;\">" + items[0].path + "</div>"
+        : translate('Are you sure you want to delete') + " " + count + " " + translate('items') + "?";
+      msgbox("custom-skip", "Confirm Delete", "<div .form><div>" + msg + "</div></div>", "", function(res=null) {
+        if (!res) return;
+        for (var i = 0; i < items.length; ++i) {
+          var path = items[i].path;
+          var new_history = [];
+          for (var j = 0; j < me.history.length; ++j) {
+            var h = me.history[j];
+            if ((h + me.sep()).indexOf(path + me.sep()) == -1) new_history.push(h);
+          }
+          me.history = new_history;
+        }
+        var jt = file_transfer.job_table;
+        for (var i = 0; i < items.length; ++i) {
+          var id = handler.get_next_job_id();
+          var item = items[i];
+          if (item.type == 1) {
+            jt.job_map[id] = { type: "del-dir", id: id, path: item.path, is_remote: is_remote, confirmed: true };
+            handler.remove_dir_all(id, item.path, is_remote, true);
+          } else {
+            handler.remove_file(id, item.path, 0, is_remote);
+            deleting_single_file_jobs[id] = { is_remote: is_remote, path: item.path };
+          }
+        }
+      });
+    }
+
+    event click $(.trash) () {
+      this.deleteSelection();
+    }
+
+    event click $(.add-folder) () {
+      var me = this;
+      msgbox("custom", translate("Create Folder"), "<div .form> \
+            <div>" + translate("Please enter the folder name") + ":</div> \
+            <div style=\"margin-bottom: 15px;\"><input|text(name) .outline-focus /></div> \
+        </div>", "", function(res=null) {
+          if (!res) return;
+          if (!res.name) return;
+          var name = res.name.trim();
+          if (!name) return;
+          if (name.indexOf(me.sep()) >= 0) {
+            handler.msgbox("custom-error", "Create Folder", "Invalid folder name");
+            return;
+          }
+          var path = me.joinPath(name);
+           var id = handler.get_next_job_id();
+           handler.create_dir(id, path, me.is_remote);
+           create_dir_jobs[id] = { is_remote: me.is_remote, path: path };
+        });
+    }
+
+    function refreshDir() {
+      this.goto(this.fd.path, false);
+    }
+
+    event click $(.refresh) () {
+      this.refreshDir();
+    }
+
+    event click $(.home) () {
+      var path = this.is_remote ? remote_home_dir : handler.get_home_dir();
+      if (!path) return;
+      if (path == this.fd.path) return;
+      this.goto(path, true);
+    }
+
+    function getCurrentRow() {
+      var row = this.table.getCurrentRow();
+      if (!row) return;
+      var name = row[1].text;
+      if (!name || name == "..") return;
+      var type = row[0].attributes["type"];
+      return [this.joinPath(name), type];
+    }
+
+    function getCurrentRows() {
+      var rows = this.table.getCurrentRows();
+      if (!rows || rows.length== 0) return;
+
+      var records = new Array();
+
+      for (var i = 0; i < rows.length; ++i) {
+        var name = rows[i][1].text;
+        if (!name || name == "..") continue;
+
+        var type = rows[i][0].attributes["type"];
+        records.push([this.joinPath(name), type]);
+      }
+      return records;
+    }
+
+    event click $(.send) () {
+      var rows = this.getCurrentRows();
+      if (!rows || rows.length == 0) return;
+      for (var i = 0; i < rows.length; ++i) {
+        file_transfer.job_table.send(rows[i][0], this.is_remote);
+      }
+    }
+
+    event change $(.select-dir) (_, el) {
+      var x = getTime() - last_key_time;
+      if (x < 1000) return;
+      if (this.fd.path != el.value) {
+        this.goto(el.value, true);
+      }
+    }
+
+    event keydown $(.select-dir) (evt, me) {
+      last_key_time = getTime();
+      if (isEnterKey(evt)) {
+        this.goto(me.value, true);
+      }
+    }
+
+    event keydown $(table.folder-view) (evt) {
+      if (evt.keyCode == Event.VK_F5) { this.refreshDir(); return true; }
+      if (evt.keyCode == Event.VK_DELETE) { this.deleteSelection(); return true; }
+      if (evt.keyCode == Event.VK_BACK) { this.goUp(); return true; }
+      if (evt.keyCode == Event.VK_F2) {
+        var rows = this.getCurrentRows();
+        if (!rows || rows.length <= 1) this.renameSelection();
+        return true;
+      }
+      return false;
+    }
+
+    function pushHistory() {
+      var path = this.fd.path;
+      if (!path) return;
+      if (path != this.history[this.history.length - 1]) this.history.push(path);
+    }
+}
+
+var file_transfer;
+
+class FileTransfer: Reactor.Component {
+    function this() {
+        file_transfer = this;
+    }
+
+    function render() {
+      return <div #file-transfer>
+            <FolderView is_remote={false} @{this.local_folder_view} />
+            <FolderView is_remote={true} @{this.remote_folder_view}/>
+            <JobTable @{this.job_table} />
+          </div>;
+    }
+}
+
+function raiseFileTransferWindow() {
+  if (view.windowState == View.WINDOW_MINIMIZED) view.windowState = View.WINDOW_SHOWN;
+  view.windowTopmost = true;
+  self.timer(400ms, function() { view.windowTopmost = false; });
+}
+
+function fileTransferRunning() {
+  return file_transfer && file_transfer.job_table && file_transfer.job_table.hasRunning();
+}
+
+function initializeFileTransfer() 
+{
+  var origUpdatePi = handler.updatePi;
+  handler.updatePi = function(v) {
+    if (origUpdatePi) origUpdatePi.call(handler, v);
+    raiseFileTransferWindow();
+  };
+  $(#file-transfer-wrapper).content(<FileTransfer />);
+  $(#video-wrapper).style.set { visibility: "hidden", position: "absolute" };
+  $(#file-transfer-wrapper).style.set { display: "block" };
+}
+
+function checkMcpFileTransfer() {
+  try {
+    var payload = handler.get_mcp_transfer_file();
+    if (payload) {
+      var parts = payload.split("|");
+      if (parts.length >= 3) {
+        var is_remote = parts[0] == "1";
+        var path = parts[1];
+        var to = parts[2];
+        var jt = file_transfer.job_table;
+        var view = is_remote ? file_transfer.remote_folder_view : file_transfer.local_folder_view;
+        var show_hidden = view ? view.show_hidden : false;
+        var id = handler.get_next_job_id();
+        jt.jobs.push({ type: "transfer", id: id, path: path, to: to,
+                       include_hidden: show_hidden, is_remote: is_remote, is_last: false });
+        jt.job_map[id] = jt.jobs[jt.jobs.length - 1];
+        handler.send_files(id, 0, path, to, 0, show_hidden, is_remote);
+        jt.update();
+      }
+    }
+  } catch(e) {}
+  self.timer(300ms, checkMcpFileTransfer);
+}
+
+self.timer(500ms, checkMcpFileTransfer);
+
+handler.updateSearchResults = function(res) {
+  res.entries = res.entries || [];
+  var view = res.is_local ? file_transfer.local_folder_view : file_transfer.remote_folder_view;
+  if (view) view.applySearchResults(res);
+}
+
+handler.updateFolderFiles = function(fd) {
+  //stdout.println("update folder files: " + JSON.stringify(fd));
+  fd.entries = fd.entries || [];
+  if (fd.id > 0) {
+    var jt = file_transfer.job_table;
+    var job = jt.job_map[fd.id];
+    if (job) {
+      job.file_num = -1;
+      job.total_size = fd.total_size;
+      job.entries = fd.entries;
+      job.num_entries = fd.num_entries;
+      file_transfer.job_table.updateJobStatus(job.id);
+    }
+  } else {
+    file_transfer.remote_folder_view.refresh({ fd: fd });
+  }
+}
+
+handler.jobProgress = function(id, file_num, speed, finished_size) {
+  file_transfer.job_table.updateJobStatus(id, file_num, null, speed, finished_size);
+}
+
+handler.jobDone = function(id, file_num = -1) {
+  var job = create_dir_jobs[id];
+  if (job) {
+    refreshDir(job.is_remote);
+    return;
+  }
+  job = rename_jobs[id];
+  if (job) {
+    refreshDir(job.is_remote);
+    delete rename_jobs[id];
+    return;
+  }
+  job = deleting_single_file_jobs[id];
+  if (job) {
+    refreshDir(job.is_remote);
+    delete deleting_single_file_jobs[id];
+    return;
+  }
+  file_transfer.job_table.updateJobStatus(id, file_num);
+}
+
+handler.jobError = function(id, err, file_num = -1) {
+  var job = deleting_single_file_jobs[id];
+  if (job) {
+    msgbox("custom-error", "Delete File", err);
+    return;
+  }
+  job = create_dir_jobs[id];
+  if (job) {
+    msgbox("custom-error", "Create Folder", err);
+    return;
+  }
+  job = rename_jobs[id];
+  if (job) {
+    msgbox("custom-error", "Rename", err);
+    delete rename_jobs[id];
+    return;
+  }
+  if (file_num < 0) {
+    handler.msgbox("custom-error", "Failed", err);
+  }
+  file_transfer.job_table.updateJobStatus(id, file_num, err);
+}
+
+handler.clearAllJobs = function() {
+  file_transfer.job_table.clearAllJobs();
+}
+
+handler.addJob = function (id, path, to, file_num, show_hidden, is_remote, auto_start) { // load last job
+  // stdout.println("restore job: " + is_remote);
+  file_transfer.job_table.addJob(id,path,to,file_num,show_hidden,is_remote,auto_start);
+}
+
+handler.updateTransferList = function () {
+  file_transfer.job_table.update();
+}
+
+function refreshDir(is_remote) {
+  if (is_remote) file_transfer.remote_folder_view.refreshDir();
+  else file_transfer.local_folder_view.refreshDir();
+}
+
+var deleting_single_file_jobs = {};
+var create_dir_jobs = {};
+var rename_jobs = {};
+
+function confirmDelete(id ,path, is_remote) {
+  msgbox("custom-skip", "Confirm Delete", "<div .form> \
+        <div>" + translate('Are you sure you want to delete this file?') + "</div> \
+        <div.ellipsis style=\"font-weight: bold;\">" + path + "</div> \
+    </div>", "", function(res=null) {
+      if (!res) {
+        file_transfer.job_table.updateJobStatus(id, -1, "cancel");
+        file_transfer.job_table.cancelDeletePolling();
+      } else if (res.skip) {
+        file_transfer.job_table.updateJobStatus(id, -1, "cancel");
+        file_transfer.job_table.confirmDeletePolling(is_remote);
+      } else {
+        handler.remove_file(id, path, 0, is_remote);
+        if (is_remote) file_transfer.remote_folder_view.table.resetCurrent();
+        else file_transfer.local_folder_view.table.resetCurrent();
+        deleting_single_file_jobs[id] = { is_remote: is_remote, path: path };
+        file_transfer.job_table.confirmDeletePolling(is_remote);
+      }
+    });
+}
+
+handler.confirmDeleteFiles = function(id, i, name) {
+  var jt = file_transfer.job_table;
+  var job = jt.job_map[id];
+  if (!job) return;
+  var n = job.num_entries;
+  if (i >= n) return;
+  var file_path = job.path;
+  if (name) file_path += handler.get_path_sep(job.is_remote) + name;
+  msgbox("custom-skip", "Confirm Delete", "<div .form> \
+        <div>" + translate('Deleting') + " #" + (i + 1) + " / " + n + " " + translate('files') + ".</div> \
+        <div>" + translate('Are you sure you want to delete this file?') + "</div> \
+        <div.ellipsis style=\"font-weight: bold;\" .text>" + file_path + "</div> \
+        <div><button|checkbox(remember)>" + translate('Do this for all conflicts') + "</button></div> \
+    </div>", "", function(res=null) {
+      if (!res) {
+        jt.updateJobStatus(id, i - 1, "cancel");
+        file_transfer.job_table.cancelDeletePolling();
+      } else if (res.skip) {
+        if (res.remember){
+          jt.updateJobStatus(id, i, "cancel");
+        } else{
+          handler.jobDone(id, i);
+        } 
+        file_transfer.job_table.confirmDeletePolling(job.is_remote);
+      } else {
+        job.no_confirm = res.remember;
+        if (job.no_confirm){ 
+          handler.set_no_confirm(id);
+          file_transfer.job_table.confirmDeletePolling(job.is_remote);
+        }
+        handler.remove_file(id, file_path, i, job.is_remote);
+      }
+      if(i+1 >= n){
+        file_transfer.job_table.confirmDeletePolling(job.is_remote);
+      }
+    });
+}
+
+handler.overrideFileConfirm = function(id, file_num, to, is_upload, is_identical) {
+  var jt = file_transfer.job_table;
+  var identical_msg = is_identical ? translate("identical_file_tip"): "";
+  msgbox("custom-skip", "Confirm Write Strategy", "<div .form> \
+        <div>" + translate('Overwrite') + " " + translate('files') + ".</div> \
+        <div>" + translate('This file exists, skip or overwrite this file?') + "</div> \
+        <div.ellipsis style=\"font-weight: bold;\" .text>" + to + "</div> \
+        <div>" + identical_msg + "</div> \
+        <div><button|checkbox(remember)>" + translate('Do this for all conflicts') + "</button></div> \
+    </div>", "", function(res=null) {
+      if (!res) {
+        jt.updateJobStatus(id, -1, "cancel");
+        handler.cancel_job(id);
+      } else if (res.skip) {
+        if (res.remember){
+          handler.set_write_override(id,file_num,false,true, is_upload); //
+        } else {
+          handler.set_write_override(id,file_num,false,false,is_upload); //
+        }
+      } else {
+        if (res.remember){
+          handler.set_write_override(id,file_num,true,true,is_upload); //
+        } else {
+          handler.set_write_override(id,file_num,true,false,is_upload); //
+        }
+      }
+    });
+}
+
+function save_file_transfer_close_state() {
+  var local_dir = file_transfer.local_folder_view.fd.path || "";
+  var local_show_hidden = file_transfer.local_folder_view.show_hidden ? "Y" : "";
+  var remote_dir = file_transfer.remote_folder_view.fd.path || "";
+  var remote_show_hidden = file_transfer.remote_folder_view.show_hidden ? "Y" : "";
+  handler.save_close_state("local_dir", local_dir);
+  handler.save_close_state("local_show_hidden", local_show_hidden);
+  handler.save_close_state("remote_dir", remote_dir);
+  handler.save_close_state("remote_show_hidden", remote_show_hidden);
+}

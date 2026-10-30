@@ -1,0 +1,274 @@
+header div {
+  word-wrap: normal;
+}
+
+header #screens {
+  background: color(gray-bg);
+  height: 28px;
+  flow: horizontal;
+  border-spacing: 0.3em;
+  padding: 0 8px 0 4px;
+  margin: * 2px;
+  border-radius: 14px;
+}
+
+header #screen {
+  text-align: center;
+  margin: * 0;
+  width: 20px;
+  height: 16px;
+  line-height: 16px;
+  border: color(border) solid 1px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: color(light-text);
+}
+
+header #secure {
+  margin: * 0;
+}
+
+header #secure svg {
+  size: 14px;
+}
+
+header .remote-id {
+  @ELLIPSIS;
+  padding-left: 2px;
+  padding-right: 0.5em;
+  margin: * 0;
+  color: color(text);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+header span:hover, header button:not(.window):hover {
+  background: color(gray-bg);
+  border-radius: 4px;
+}
+
+@media platform != "OSX" {
+header span:hover, header button:not(.window):hover {
+  background: color(gray-bg);
+  border-radius: 4px;
+}
+}
+
+header #screen:hover {
+  background: color(border);
+}
+
+header #secure:hover {
+  background: unset;
+}
+
+header span:active, header button:not(.window):active, header #screen:active {
+  color: color(text);
+  background: color(border);
+}
+
+#screen-switcher {
+  flow: horizontal;
+  margin: * 0;
+  vertical-align: middle;
+}
+
+#screen-switcher > .screen-tile {
+  text-align: center;
+  margin: * 1px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  padding: 0 4px;
+  border: color(border) solid 1px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: color(light-text);
+  cursor: pointer;
+}
+
+#screen-switcher > .screen-tile:hover {
+  border-color: color(button);
+}
+
+#screen-switcher > .screen-tile.current {
+  background: color(button);
+  color: white;
+  border-color: color(button);
+}
+
+button#fullscreen.active, button#annotate.active {
+  background: color(border);
+  border-radius: 4px;
+}
+
+button:disabled {
+  opacity: 0.3;
+}
+
+.screenshot-toast {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  width: max-content;
+  background: rgba(33,37,41,0.92);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10000;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+menu li:not(.toggle-option) {
+  padding-left: 20px;
+}
+
+menu li.unavailable, menu li.unavailable:hover {
+  color: color(lighter-text);
+}
+
+menu li.selected:not(.toggle-option) {
+  font-weight: 600;
+  color: #0257A5;
+  background: #EAF2FB;
+  border-radius: 4px;
+}
+
+menu li.toggle-option .toggle-track {
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  border-radius: 7px;
+  background: #CED4DA;
+  position: relative;
+  margin: * 6px * 0;
+  padding: 0;
+}
+
+menu li.toggle-option.selected .toggle-track {
+  background: #0257A5;
+}
+
+menu li.toggle-option .toggle-knob {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: white;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  padding: 0;
+  margin: 0;
+}
+
+menu li.toggle-option.selected .toggle-knob {
+  left: 16px;
+}
+
+/* === Bitpro toolbar refinement ===
+   Taller white bar with a soft shadow; 30px rounded icon buttons with brand-tint hover;
+   the remote ID sits in a light chip. Height is measured at runtime by remote.tis. */
+header {
+  height: 40px;
+  background: white;
+  border-bottom: 1px solid #E3E8EF;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+
+header button:not(.window) {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: * 1px;
+  color: #4B5563;
+  border-radius: 6px;
+}
+
+header button:not(.window) svg {
+  size: 17px;
+  margin: *;
+}
+
+header span:hover, header button:not(.window):hover {
+  color: #0257A5;
+  background: #EAF2FB;
+  border-radius: 6px;
+}
+
+header span:active, header button:not(.window):active, header #screen:active {
+  color: #0257A5;
+  background: #D6E6F7;
+}
+
+button#fullscreen.active, button#annotate.active {
+  color: #0257A5;
+  background: #EAF2FB;
+  border-radius: 6px;
+}
+
+header #screens {
+  height: 30px;
+  padding: 0 10px 0 6px;
+  margin: * 4px;
+  background: #F3F5F8;
+  border: 1px solid #E3E8EF;
+  border-radius: 15px;
+}
+
+header #secure:hover {
+  background: unset;
+}
+
+header .remote-id {
+  font-size: 0.82em;
+  color: #0B2545;
+}
+
+header span.toolbar-sep {
+  height: 18px;
+  margin: * 6px;
+  background: #E3E8EF;
+}
+
+#screen-switcher > .screen-tile {
+  border-radius: 4px;
+}
+
+html.darktheme header {
+  background: #111A2B;
+  border-bottom-color: #1F2A3D;
+  box-shadow: none;
+}
+
+html.darktheme header button:not(.window) {
+  color: #CBD5E1;
+}
+
+html.darktheme header span:hover, html.darktheme header button:not(.window):hover,
+html.darktheme button#fullscreen.active, html.darktheme button#annotate.active {
+  color: #93C5FD;
+  background: #1A2B45;
+}
+
+html.darktheme header #screens {
+  background: #0B1220;
+  border-color: #1F2A3D;
+}
+
+html.darktheme header .remote-id {
+  color: #E5E7EB;
+}
+
+html.darktheme header span.toolbar-sep {
+  background: #1F2A3D;
+}

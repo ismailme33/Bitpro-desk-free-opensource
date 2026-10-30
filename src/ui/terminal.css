@@ -1,0 +1,144 @@
+#terminal-container {
+    size: *;
+    background: #0B1220;
+    flow: vertical;
+    padding: 0;
+}
+
+#terminal-viewport {
+    size: *;
+    overflow: hidden;
+    padding: 12px 14px 12px 14px;
+    position: relative;
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 18px;
+    color: #DCE3EC;
+}
+
+#terminal-grid {
+    position: relative;
+    white-space: pre;
+}
+
+#terminal-grid .term-row {
+    height: 18px;
+    line-height: 18px;
+    white-space: pre;
+    overflow: hidden;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+#terminal-grid .term-row > span {
+    display: inline-block;
+    height: 18px;
+    line-height: 18px;
+    vertical-align: top;
+    margin: 0;
+    padding: 0;
+    letter-spacing: 0;
+    border: 0;
+}
+
+#terminal-cursor {
+    position: absolute;
+    width: 7.8px;
+    height: 18.2px;
+    background: #60A5FA;
+    opacity: 0.7;
+    pointer-events: none;
+    left: 0;
+    top: 0;
+}
+
+#terminal-grid .ansi-black { color: #1B2333; }
+#terminal-grid .ansi-red { color: #E5534B; }
+#terminal-grid .ansi-green { color: #3FB27F; }
+#terminal-grid .ansi-yellow { color: #D9A83F; }
+#terminal-grid .ansi-blue { color: #4C8DF6; }
+#terminal-grid .ansi-magenta { color: #B07CE8; }
+#terminal-grid .ansi-cyan { color: #3DB8C9; }
+#terminal-grid .ansi-white { color: #C9D1DC; }
+
+#terminal-grid .ansi-bright-black { color: #5B6578; }
+#terminal-grid .ansi-bright-red { color: #FF7B72; }
+#terminal-grid .ansi-bright-green { color: #5FD39C; }
+#terminal-grid .ansi-bright-yellow { color: #F2C55C; }
+#terminal-grid .ansi-bright-blue { color: #79AAFF; }
+#terminal-grid .ansi-bright-magenta { color: #CC9BFF; }
+#terminal-grid .ansi-bright-cyan { color: #6FD6E4; }
+#terminal-grid .ansi-bright-white { color: #F5F7FA; }
+
+#terminal-grid .ansi-bold { font-weight: bold; }
+
+#terminal-grid .ansi-bg-black { background-color: #1B2333; }
+#terminal-grid .ansi-bg-red { background-color: #E5534B; }
+#terminal-grid .ansi-bg-green { background-color: #3FB27F; }
+#terminal-grid .ansi-bg-yellow { background-color: #D9A83F; }
+#terminal-grid .ansi-bg-blue { background-color: #4C8DF6; }
+#terminal-grid .ansi-bg-magenta { background-color: #B07CE8; }
+#terminal-grid .ansi-bg-cyan { background-color: #3DB8C9; }
+#terminal-grid .ansi-bg-white { background-color: #C9D1DC; }
+
+#terminal-grid .ansi-bg-bright-black { background-color: #5B6578; }
+#terminal-grid .ansi-bg-bright-red { background-color: #FF7B72; }
+#terminal-grid .ansi-bg-bright-green { background-color: #5FD39C; }
+#terminal-grid .ansi-bg-bright-yellow { background-color: #F2C55C; }
+#terminal-grid .ansi-bg-bright-blue { background-color: #79AAFF; }
+#terminal-grid .ansi-bg-bright-magenta { background-color: #CC9BFF; }
+#terminal-grid .ansi-bg-bright-cyan { background-color: #6FD6E4; }
+#terminal-grid .ansi-bg-bright-white { background-color: #F5F7FA; }
+
+/* Status bar: connection state on the left, Disconnect on the right */
+#terminal-statusbar {
+    flow: horizontal;
+    height: 32px;
+    padding: 0 10px 0 14px;
+    vertical-align: middle;
+    border-spacing: 8px;
+    font-family: system-ui, "Segoe UI", sans-serif;
+    font-size: 12px;
+    color: #9FB3C8;
+    background: #0E1626;
+    border-top: 1px solid #1F2A3D;
+}
+
+#terminal-statusbar .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #F2C55C;
+}
+
+#terminal-statusbar .status-dot.on {
+    background: #3FB27F;
+}
+
+#terminal-statusbar .status-dot.error {
+    background: #E5534B;
+}
+
+#terminal-statusbar .status-text {
+    width: *;
+    color: #CBD5E1;
+}
+
+#terminal-statusbar .disconnect-btn {
+    height: 24px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #FCA5A5;
+    background: transparent;
+    border: 1px solid rgba(229, 83, 75, 0.45);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#terminal-statusbar .disconnect-btn:hover {
+    color: white;
+    background: #DC2626;
+    border-color: #DC2626;
+}

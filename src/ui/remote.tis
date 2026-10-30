@@ -1,0 +1,1438 @@
+var cursor_img = $(img#cursor);
+is_file_transfer = handler.is_file_transfer();
+var is_port_forward = handler.is_port_forward();
+var is_view_camera = handler.is_view_camera();
+var is_terminal = handler.is_terminal();
+var kvm_link = handler.kvm_link_side();
+var kvm_link_remembered = kvm_link && handler.kvm_link_remembered();
+var input_blocked = false;
+var screenshot_auto_clipboard = false;
+var display_width = 0;
+var display_height = 0;
+var display_origin_x = 0;
+var display_origin_y = 0;
+var display_cursor_embedded = false;
+var display_scale = 1;
+var user_zoom_factor = 1.0;
+const USER_ZOOM_MIN = 0.25;
+const USER_ZOOM_MAX = 8.0;
+const PAN_WHEEL_SPEED = 20;
+const WIN_WHEEL_DELTA = 120;
+var draw_mode = false;
+var draw_tool = 5;
+var draw_dragging = false;
+var draw_sx = 0;
+var draw_sy = 0;
+var draw_cx = 0;
+var draw_cy = 0;
+var draw_points = [];
+var draw_color_idx = 0;
+var draw_width_idx = 1;
+var draw_shape_id = 0;
+var draw_last_send = 0;
+var draw_last_px = 0;
+var draw_last_py = 0;
+var draw_stream_sent = false;
+var draw_v2 = false;
+const DRAW_COLORS = [
+    ["FF3B30", 255, 59, 48],
+    ["FF9500", 255, 149, 0],
+    ["FFCC00", 255, 204, 0],
+    ["28A745", 40, 167, 69],
+    ["007BFF", 0, 123, 255],
+    ["0DCAF0", 13, 202, 240],
+    ["212529", 33, 37, 41],
+    ["FFFFFF", 255, 255, 255]
+];
+const DRAW_WIDTHS = [2, 4, 6];
+var keyboard_enabled = true; // server side
+var clipboard_enabled = true; // server side
+var audio_enabled = true; // server side
+var file_enabled = true; // server side
+var restart_enabled = true; // server side
+var recording_enabled = true; // server side
+var scroll_body = $(body);
+var auto_pan_enabled = true;
+var auto_pan_threshold = 30;
+var auto_pan_base_speed = 4;
+var auto_pan_max_speed = 24;
+var auto_pan_max_accel = 4.0;
+var auto_pan_accel_ramp_ms = 1500;
+var auto_pan_timer = null;
+var auto_pan_generation = 0;
+var auto_pan_dx = 0;
+var auto_pan_dy = 0;
+var auto_pan_start_time = 0;
+var auto_pan_proximity_x = 0.0;
+var auto_pan_proximity_y = 0.0;
+
+function shouldEnableAutoPan() {
+    if (!display_width || !display_height) {
+        return false;
+    }
+    var bw = $(body).box(#width, #border);
+    var bh = $(body).box(#height, #border);
+    if (view.windowState == View.WINDOW_FULL_SCREEN) {
+        var (sx, sy, sw, sh) = view.screenBox(#frame, #rectw);
+        bw = sw;
+        bh = sh;
+    }
+    var scaled_width = display_width * display_scale;
+    var scaled_height = display_height * display_scale;
+    return (scaled_width > bw || scaled_height > bh);
+}
+
+function checkAutoPan(mouse_x, mouse_y) {
+    if (!auto_pan_enabled) { stopAutoPan(); return; }
+    if (display_cursor_embedded) { stopAutoPan(); return; }
+    if (is_file_transfer || is_port_forward || is_view_camera || is_terminal) {
+        stopAutoPan(); return;
+    }
+    if (!shouldEnableAutoPan()) { stopAutoPan(); return; }
+
+    var bw = $(body).box(#width, #border);
+    var bh = $(body).box(#height, #border);
+    if (view.windowState == View.WINDOW_FULL_SCREEN) {
+        var (sx, sy, sw, sh) = view.screenBox(#frame, #rectw);
+        bw = sw;
+        bh = sh;
+    }
+
+    var scaled_width = display_width * display_scale;
+    var scaled_height = display_height * display_scale;
+
+    var scroll_x = scroll_body.scroll(#left) || 0;
+    var scroll_y = scroll_body.scroll(#top) || 0;
+    var viewport_mouse_x = mouse_x - scroll_x;
+    var viewport_mouse_y = mouse_y - scroll_y;
+
+    var dir_x = 0;
+    var dir_y = 0;
+    var prox_x = 0.0;
+    var prox_y = 0.0;
+
+    if (scaled_width > bw) {
+        if (viewport_mouse_x < auto_pan_threshold) {
+            dir_x = -1;
+            prox_x = 1.0 - (viewport_mouse_x.toFloat() / auto_pan_threshold);
+        } else if (viewport_mouse_x > bw - auto_pan_threshold) {
+            dir_x = 1;
+            prox_x = 1.0 - ((bw - viewport_mouse_x).toFloat() / auto_pan_threshold);
+        }
+    }
+
+    if (scaled_height > bh) {
+        if (viewport_mouse_y < auto_pan_threshold) {
+            dir_y = -1;
+            prox_y = 1.0 - (viewport_mouse_y.toFloat() / auto_pan_threshold);
+        } else if (viewport_mouse_y > bh - auto_pan_threshold) {
+            dir_y = 1;
+            prox_y = 1.0 - ((bh - viewport_mouse_y).toFloat() / auto_pan_threshold);
+        }
+    }
+
+    if (prox_x < 0.0) prox_x = 0.0;
+    if (prox_x > 1.0) prox_x = 1.0;
+    if (prox_y < 0.0) prox_y = 0.0;
+    if (prox_y > 1.0) prox_y = 1.0;
+
+    if (dir_x != 0 || dir_y != 0) {
+        startAutoPan(dir_x, dir_y, prox_x, prox_y);
+    } else {
+        stopAutoPan();
+    }
+}
+
+function startAutoPan(dir_x, dir_y, prox_x, prox_y) {
+    auto_pan_dx = dir_x;
+    auto_pan_dy = dir_y;
+    auto_pan_proximity_x = prox_x;
+    auto_pan_proximity_y = prox_y;
+
+    if (auto_pan_timer) {
+        return;
+    }
+
+    auto_pan_start_time = getTime();
+
+    auto_pan_generation += 1;
+    var generation = auto_pan_generation;
+
+    auto_pan_timer = self.timer(16ms, function() {
+        if (!auto_pan_enabled) { stopAutoPan(); return false; }
+        if (generation != auto_pan_generation) return false;
+        if (auto_pan_dx == 0 && auto_pan_dy == 0) return false;
+
+        var elapsed = getTime() - auto_pan_start_time;
+        var time_ratio = elapsed / auto_pan_accel_ramp_ms;
+        if (time_ratio > 1.0) time_ratio = 1.0;
+        var time_factor = 1.0 + (auto_pan_max_accel - 1.0) * time_ratio;
+
+        var speed_x = auto_pan_base_speed + (auto_pan_max_speed - auto_pan_base_speed) * auto_pan_proximity_x;
+        var speed_y = auto_pan_base_speed + (auto_pan_max_speed - auto_pan_base_speed) * auto_pan_proximity_y;
+
+        var move_x = (auto_pan_dx * speed_x * time_factor).toInteger();
+        var move_y = (auto_pan_dy * speed_y * time_factor).toInteger();
+
+        var current_x = scroll_body.scroll(#left) || 0;
+        var current_y = scroll_body.scroll(#top) || 0;
+        var new_x = current_x + move_x;
+        var new_y = current_y + move_y;
+
+        var body_width = $(body).box(#width, #border);
+        var body_height = $(body).box(#height, #border);
+        var content_width = handler.box(#width, #border);
+        var content_height = handler.box(#height, #border);
+        var max_scroll_x = content_width - body_width;
+        var max_scroll_y = content_height - body_height;
+
+        if (new_x < 0) new_x = 0;
+        if (new_y < 0) new_y = 0;
+        if (new_x > max_scroll_x) new_x = max_scroll_x;
+        if (new_y > max_scroll_y) new_y = max_scroll_y;
+
+        if (new_x != current_x || new_y != current_y) {
+            scroll_body.scrollTo(new_x, new_y, false);
+        }
+
+        return true;
+    });
+}
+
+function stopAutoPan() {
+    if (auto_pan_timer) {
+        auto_pan_timer = null;
+    }
+    auto_pan_dx = 0;
+    auto_pan_dy = 0;
+    auto_pan_proximity_x = 0.0;
+    auto_pan_proximity_y = 0.0;
+    auto_pan_start_time = 0;
+}
+
+
+var multi_display_mode = false;
+
+function screenshotDisplay() {
+    return multi_display_mode ? -1 : pi.current_display;
+}
+
+handler.setDisplay = function(x, y, w, h, cursor_embedded) {
+    if (multi_display_mode) return;
+    display_width = w;
+    display_height = h;
+    display_origin_x = x;
+    display_origin_y = y;
+    display_cursor_embedded = cursor_embedded;
+    adaptDisplay();
+    if (recording) handler.record_screen(true, 0, w, h);
+}
+
+function enterSingleDisplay(idx) {
+    if (multi_display_mode) {
+        multi_display_mode = false;
+        handler.set_multi_layout(0, 0, []);
+    }
+    pi.current_display = idx;
+    header.update();
+    handler.switch_display(idx);
+}
+
+function enterAllDisplays() {
+    if (!pi.displays || pi.displays.length < 2) return;
+    var x0 = pi.displays[0].x;
+    var y0 = pi.displays[0].y;
+    var x1 = pi.displays[0].x + pi.displays[0].width;
+    var y1 = pi.displays[0].y + pi.displays[0].height;
+    for (var i = 1; i < pi.displays.length; ++i) {
+        var d = pi.displays[i];
+        if (d.x < x0) x0 = d.x;
+        if (d.y < y0) y0 = d.y;
+        if (d.x + d.width > x1) x1 = d.x + d.width;
+        if (d.y + d.height > y1) y1 = d.y + d.height;
+    }
+    var bbox_w = x1 - x0;
+    var bbox_h = y1 - y0;
+    var slots = [];
+    var indices = [];
+    for (var i = 0; i < pi.displays.length; ++i) {
+        var d = pi.displays[i];
+        slots.push([i, d.x - x0, d.y - y0, d.width, d.height]);
+        indices.push(i);
+    }
+    multi_display_mode = true;
+    pi.current_display = -1;
+    header.update();
+    display_width = bbox_w;
+    display_height = bbox_h;
+    display_origin_x = x0;
+    display_origin_y = y0;
+    display_cursor_embedded = false;
+    adaptDisplay();
+    handler.set_multi_layout(bbox_w, bbox_h, slots);
+    handler.switch_display_set(indices);
+}
+
+// in case toolbar not shown correctly
+view.windowMinSize = (400, 250);
+
+function adaptDisplay() {
+    stopAutoPan();
+	var w = display_width;
+    var h = display_height;
+    if (!w || !h) return;
+    var style = handler.get_view_style();
+    display_scale = 1.;
+    var (sx, sy, sw, sh) = view.screenBox(view.windowState == View.WINDOW_FULL_SCREEN ? #frame : #workarea, #rectw);
+    if (style != "original") {
+        var bw = $(body).box(#width, #border);
+        var bh = $(body).box(#height, #border);
+        if (view.windowState == View.WINDOW_FULL_SCREEN) {
+            bw = sw;
+            bh = sh;
+        }
+        if (bw > 0 && bh > 0) {
+            var scale_x = bw.toFloat() / w;
+            var scale_y = bh.toFloat() / h;
+            var scale = scale_x < scale_y ? scale_x : scale_y;
+            if ((scale > 1 && style == "stretch") ||
+                (scale < 1 && style == "shrink")) {
+                display_scale = scale;
+                w = w * scale;
+                h = h * scale;
+            }
+        }
+    }
+    if (user_zoom_factor != 1.0) {
+        display_scale = display_scale * user_zoom_factor;
+        w = w * user_zoom_factor;
+        h = h * user_zoom_factor;
+    }
+    refreshCursor();
+    handler.style.set {
+        width: w / scaleFactor + "px",
+        height: h / scaleFactor + "px",
+    };
+}
+
+event click $(li#adjust-window) {
+    var w = display_width * display_scale;
+    var h = display_height * display_scale;
+    if (!w || !h) return;
+    var hh = $(header).box(#height, #border);
+    view.windowState = View.WINDOW_SHOWN;
+    self.timer(50ms, function() {
+        var (x, y) = view.box(#position, #border, #screen);
+        var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+        var extra = is_win ? 4 : 2;
+        var ww = (w + extra).toInteger();
+        var wh = (h + hh + extra).toInteger();
+        if (x + ww > sx + sw) x = sx + sw - ww;
+        if (y + wh > sy + sh) y = sy + sh - wh;
+        if (x < sx) x = sx;
+        if (y < sy) y = sy;
+        view.move(x, y, ww, wh);
+    });
+}
+
+handler.applyZoomDelta = function(factor) {
+    var f = 0.0;
+    try { f = factor.toFloat(); } catch (e) { return user_zoom_factor; }
+    if (f <= 0.0 || f != f) return user_zoom_factor;
+    var new_zoom = user_zoom_factor * f;
+    if (new_zoom < USER_ZOOM_MIN) new_zoom = USER_ZOOM_MIN;
+    if (new_zoom > USER_ZOOM_MAX) new_zoom = USER_ZOOM_MAX;
+    if (new_zoom == user_zoom_factor) return user_zoom_factor;
+
+    var prev_zoom = user_zoom_factor;
+    var sx_before = scroll_body.scroll(#left) || 0;
+    var sy_before = scroll_body.scroll(#top) || 0;
+    var bw = $(body).box(#width, #border);
+    var bh = $(body).box(#height, #border);
+    var anchor_x = cur_local_x > 0 && cur_local_x < bw ? cur_local_x : bw / 2;
+    var anchor_y = cur_local_y > 0 && cur_local_y < bh ? cur_local_y : bh / 2;
+    var content_x = sx_before + anchor_x;
+    var content_y = sy_before + anchor_y;
+
+    user_zoom_factor = new_zoom;
+    adaptDisplay();
+
+    var ratio = new_zoom / prev_zoom;
+    var new_sx = content_x * ratio - anchor_x;
+    var new_sy = content_y * ratio - anchor_y;
+    if (new_sx < 0) new_sx = 0;
+    if (new_sy < 0) new_sy = 0;
+    scroll_body.scrollTo(new_sx.toInteger(), new_sy.toInteger(), false);
+
+    try { view.windowCaption = "Bitpro Desk — Zoom " + Math.round(user_zoom_factor * 100).toInteger() + "%"; } catch (e) {}
+    return user_zoom_factor;
+}
+
+handler.resetZoom = function() {
+    if (user_zoom_factor == 1.0) return;
+    user_zoom_factor = 1.0;
+    adaptDisplay();
+}
+
+handler.toggleZoom = function() {
+    user_zoom_factor = user_zoom_factor > 1.5 ? 1.0 : 2.0;
+    adaptDisplay();
+}
+
+
+// Map engine VK codes to KEY_MAP name strings (for Wayland keyboard fallback)
+var vk_keymap = {};
+for (var (k, v) in Event) {
+    k = k + "";
+    if (k[0] == "V" && k[1] == "K") vk_keymap[v] = k;
+}
+
+var entered = false;
+var snapshot_down_seen = false;
+var space_down_seen = false;
+var window_focused = true;
+
+view << event windowblur {
+    window_focused = false;
+    if (!is_file_transfer && !is_port_forward && !is_view_camera && !is_terminal) {
+        handler.leave(handler.get_keyboard_mode());
+    }
+}
+
+view << event windowfocus {
+    window_focused = true;
+    if (!is_file_transfer && !is_port_forward && !is_view_camera && !is_terminal) {
+        handler.enter(handler.get_keyboard_mode());
+    }
+}
+function localShortcutName(evt) {
+    if (is_win || !evt.ctrlKey || !evt.altKey || !evt.shiftKey || evt.commandKey) return "";
+    if (evt.keyCode == 0x53) return "screenshot";
+    if (evt.keyCode == 0x52) return "record";
+    if (evt.keyCode == 0x54) return "transfer";
+    if (evt.keyCode == 0x46) return "fullscreen";
+    return "";
+}
+
+if (!is_file_transfer && !is_port_forward && !is_view_camera && !is_terminal) {
+    self.onKey = function(evt) {
+        if (draw_mode) {
+            if (evt.type == Event.KEY_DOWN) {
+                if (evt.keyCode == 0x1B) {
+                    exitDrawMode();
+                    return true;
+                }
+                if (evt.keyCode == 0x5A && (is_osx ? evt.commandKey : evt.ctrlKey)) {
+                    drawUndo();
+                    return true;
+                }
+            }
+            return true;
+        }
+        if (!entered) return false;
+        // On X11/Windows/Mac, rdev grab handles keyboard — just consume event
+        if (!handler.is_wayland_no_grab()) return true;
+        // On Wayland, rdev grab doesn't work — send via UI key events
+        if (!keyboard_enabled) return true;
+        var shortcut = localShortcutName(evt);
+        if (shortcut) {
+            if (evt.type == Event.KEY_DOWN) handler.handleLocalShortcut(shortcut);
+            return true;
+        }
+        var down_or_up;
+        if (evt.type == Event.KEY_DOWN) down_or_up = 0;
+        else if (evt.type == Event.KEY_UP) down_or_up = 1;
+        else if (evt.type == Event.KEY_CHAR) down_or_up = 2;
+        else return true;
+        var vk_name = vk_keymap[evt.keyCode] || "";
+        if (evt.keyCode == 0x2C) {
+            if (down_or_up == 0) snapshot_down_seen = true;
+            else if (down_or_up == 1) {
+                if (!snapshot_down_seen) {
+                    handler.send_key_to_remote(0, vk_name, evt.keyCode,
+                        evt.altKey, evt.ctrlKey, evt.shiftKey, evt.commandKey);
+                }
+                snapshot_down_seen = false;
+            }
+        }
+        if (evt.keyCode == 0x20) {
+            if (down_or_up == 0) space_down_seen = true;
+            else if (down_or_up == 1) space_down_seen = false;
+            else if (!space_down_seen) {
+                handler.send_key_to_remote(0, vk_name, evt.keyCode,
+                    evt.altKey, evt.ctrlKey, evt.shiftKey, evt.commandKey);
+                handler.send_key_to_remote(1, vk_name, evt.keyCode,
+                    evt.altKey, evt.ctrlKey, evt.shiftKey, evt.commandKey);
+                return true;
+            }
+        }
+        handler.send_key_to_remote(down_or_up, vk_name, evt.keyCode,
+            evt.altKey, evt.ctrlKey, evt.shiftKey, evt.commandKey);
+        return true;
+    }
+}
+
+var last_mouse_mask;
+var is_left_down = false;
+var acc_wheel_delta_x = 0;
+var acc_wheel_delta_y = 0;
+var last_wheel_time = 0;
+var inertia_velocity_x = 0;
+var inertia_velocity_y = 0;
+var acc_wheel_delta_x0 = 0;
+var acc_wheel_delta_y0 = 0;
+var total_wheel_time = 0;
+var wheeling = false;
+var rapid_wheel_count = 0;
+var wait_window_toolbar = false;
+var dragging = false;
+var is_mouse_event_triggered = false;
+
+function resetWheel() {
+    acc_wheel_delta_x = 0;
+    acc_wheel_delta_y = 0;
+    last_wheel_time = 0;
+    inertia_velocity_x = 0;
+    inertia_velocity_y = 0;
+    acc_wheel_delta_x0 = 0;
+    acc_wheel_delta_y0 = 0;
+    total_wheel_time = 0;
+    wheeling = false;
+    rapid_wheel_count = 0;
+}
+
+var INERTIA_ACCELERATION = 30;
+
+var scroll_speed_factor = 1.0;
+
+function refreshScrollSpeed() {
+    var v = handler.get_option("scroll-speed");
+    if (v == "scroll-speed-2") scroll_speed_factor = 0.5;
+    else if (v == "scroll-speed-4") scroll_speed_factor = 0.25;
+    else scroll_speed_factor = 1.0;
+}
+refreshScrollSpeed();
+
+function accWheel(v, is_x) {
+    if (wheeling) return;
+    var abs_v = Math.abs(v);
+    var max_t = abs_v / INERTIA_ACCELERATION;
+    for (var t = 0.1; t < max_t; t += 0.1) {
+        var d = Math.round((abs_v - t * INERTIA_ACCELERATION / 2) * t).toInteger();
+        if (d >= 1) {
+            abs_v -= t * INERTIA_ACCELERATION;
+            if (v < 0) {
+                d = -d;
+                v = -abs_v;
+            } else {
+                v = abs_v;
+            }
+            handler.send_mouse(3, is_x ? d : 0, !is_x ? d : 0, false, false, false, false);
+            accWheel(v, is_x);
+            break;
+        }
+    }
+}
+
+var draw_overlay = $(#draw-overlay);
+
+function annotationV2() {
+    return handler.is_annotation_v2_supported();
+}
+
+function toRemoteX(x) {
+    return (x / display_scale).toInteger() + display_origin_x;
+}
+
+function toRemoteY(y) {
+    return (y / display_scale).toInteger() + display_origin_y;
+}
+
+function toLocalX(rx) {
+    return (rx - display_origin_x) * display_scale;
+}
+
+function toLocalY(ry) {
+    return (ry - display_origin_y) * display_scale;
+}
+
+function enterDrawMode() {
+    if (draw_mode) return;
+    draw_v2 = annotationV2();
+    if (!draw_v2 && draw_tool == 5) draw_tool = 2;
+    draw_mode = true;
+    handler.set_annotation_mode(true);
+    draw_overlay.style.set { display: "block" };
+    $(#draw-palette).style.set { display: "block" };
+    if (drawPalette) drawPalette.update();
+    if (header) header.update();
+}
+
+function exitDrawMode() {
+    if (!draw_mode) return;
+    draw_mode = false;
+    draw_dragging = false;
+    draw_points = [];
+    draw_overlay.capture(false);
+    handler.set_annotation_mode(false);
+    draw_overlay.style.set { display: "none" };
+    $(#draw-palette).style.set { display: "none" };
+    draw_overlay.refresh();
+    if (header) header.update();
+}
+
+function setDrawTool(tool) {
+    if (tool == 5 && !annotationV2()) tool = 2;
+    draw_tool = tool;
+    if (!draw_mode) {
+        enterDrawMode();
+    } else if (drawPalette) {
+        drawPalette.update();
+    }
+}
+
+function setDrawColor(i) {
+    draw_color_idx = i;
+    if (drawPalette) drawPalette.update();
+    if (header) header.update();
+}
+
+function setDrawWidth(i) {
+    draw_width_idx = i;
+    if (drawPalette) drawPalette.update();
+}
+
+function drawUndo() {
+    if (!draw_mode || draw_dragging || !annotationV2()) return;
+    handler.send_annotation_undo();
+}
+
+function sendCurrentShape() {
+    var m = {
+        kind: draw_tool,
+        argb: "FF" + DRAW_COLORS[draw_color_idx][0],
+        width: DRAW_WIDTHS[draw_width_idx],
+        id: draw_shape_id,
+        points: []
+    };
+    if (draw_tool == 5) {
+        if (draw_points.length < 4) return false;
+        m.points = draw_points;
+        m.x1 = draw_points[0];
+        m.y1 = draw_points[1];
+        m.x2 = draw_points[draw_points.length - 2];
+        m.y2 = draw_points[draw_points.length - 1];
+    } else {
+        m.x1 = toRemoteX(draw_sx);
+        m.y1 = toRemoteY(draw_sy);
+        m.x2 = toRemoteX(draw_cx);
+        m.y2 = toRemoteY(draw_cy);
+        if (m.x1 == m.x2 && m.y1 == m.y2) return false;
+    }
+    handler.send_annotation2(m);
+    return true;
+}
+
+function drawOverlayPaint(gfx) {
+    if (!draw_dragging) return true;
+    var c = DRAW_COLORS[draw_color_idx];
+    gfx.strokeColor(color(c[1], c[2], c[3]));
+    var sw = DRAW_WIDTHS[draw_width_idx] * display_scale;
+    gfx.strokeWidth(sw < 1.0 ? 1.0 : sw);
+    if (draw_tool == 5) {
+        var n = draw_points.length / 2;
+        for (var j = 1; j < n; ++j) {
+            gfx.line(toLocalX(draw_points[2 * j - 2]), toLocalY(draw_points[2 * j - 1]),
+                toLocalX(draw_points[2 * j]), toLocalY(draw_points[2 * j + 1]));
+        }
+    } else if (draw_tool == 3) {
+        gfx.rectangle(draw_sx < draw_cx ? draw_sx : draw_cx, draw_sy < draw_cy ? draw_sy : draw_cy,
+            draw_sx > draw_cx ? draw_sx : draw_cx, draw_sy > draw_cy ? draw_sy : draw_cy);
+    } else if (draw_tool == 4) {
+        gfx.ellipse((draw_sx + draw_cx) / 2.0, (draw_sy + draw_cy) / 2.0,
+            Math.abs(draw_cx - draw_sx) / 2.0, Math.abs(draw_cy - draw_sy) / 2.0);
+    } else {
+        gfx.line(draw_sx, draw_sy, draw_cx, draw_cy);
+        if (draw_tool == 2) {
+            var angle = Math.atan2(draw_cy - draw_sy, draw_cx - draw_sx);
+            var head = 14.0;
+            gfx.line(draw_cx, draw_cy, draw_cx - head * Math.cos(angle + 0.5236),
+                draw_cy - head * Math.sin(angle + 0.5236));
+            gfx.line(draw_cx, draw_cy, draw_cx - head * Math.cos(angle - 0.5236),
+                draw_cy - head * Math.sin(angle - 0.5236));
+        }
+    }
+    return true;
+}
+
+draw_overlay.paintContent = drawOverlayPaint;
+
+function drawOverlayMouse(evt, mx, my) {
+    switch (evt.type) {
+        case Event.MOUSE_DOWN:
+            if (evt.buttons != 1) return true;
+            draw_dragging = true;
+            draw_shape_id += 1;
+            draw_stream_sent = false;
+            draw_sx = mx;
+            draw_sy = my;
+            draw_cx = mx;
+            draw_cy = my;
+            draw_last_px = mx;
+            draw_last_py = my;
+            draw_last_send = getTime();
+            draw_points = draw_tool == 5 ? [toRemoteX(mx), toRemoteY(my)] : [];
+            draw_overlay.capture(#strict);
+            draw_overlay.refresh();
+            return true;
+        case Event.MOUSE_MOVE:
+            checkFullscreenToolbarReveal(my);
+            if (!draw_dragging) return true;
+            draw_cx = mx;
+            draw_cy = my;
+            if (draw_tool == 5) {
+                var dx = mx - draw_last_px;
+                var dy = my - draw_last_py;
+                if (dx * dx + dy * dy >= 4) {
+                    draw_last_px = mx;
+                    draw_last_py = my;
+                    draw_points.push(toRemoteX(mx));
+                    draw_points.push(toRemoteY(my));
+                    if (draw_points.length >= 4000) {
+                        sendCurrentShape();
+                        draw_shape_id += 1;
+                        draw_stream_sent = false;
+                        draw_points = [draw_points[draw_points.length - 2],
+                            draw_points[draw_points.length - 1]];
+                    }
+                }
+            }
+            if (draw_v2 && getTime() - draw_last_send >= 75) {
+                draw_last_send = getTime();
+                if (sendCurrentShape()) draw_stream_sent = true;
+            }
+            draw_overlay.refresh();
+            return true;
+        case Event.MOUSE_UP:
+            if (!draw_dragging) return true;
+            draw_dragging = false;
+            draw_overlay.capture(false);
+            draw_cx = mx;
+            draw_cy = my;
+            if (draw_tool == 5 && (mx != draw_last_px || my != draw_last_py)) {
+                draw_points.push(toRemoteX(mx));
+                draw_points.push(toRemoteY(my));
+            }
+            if (!sendCurrentShape() && draw_stream_sent) {
+                handler.send_annotation_undo();
+            }
+            draw_stream_sent = false;
+            draw_points = [];
+            draw_overlay.refresh();
+            return true;
+        case Event.MOUSE_DCLICK:
+            return true;
+    }
+    return false;
+}
+
+draw_overlay.onMouse = function(evt) {
+    return drawOverlayMouse(evt, evt.x, evt.y);
+}
+
+var draw_palette_el = $(#draw-palette);
+
+draw_palette_el.onMouse = function(evt) {
+    if (evt.target !== draw_palette_el) {
+        if ((evt.type & (Event.SINKING || 0x8000)) != 0) return false;
+        if (evt.type == Event.MOUSE_DOWN && evt.target.attributes.hasClass("color-swatch")) {
+            setDrawColor(evt.target.attributes["cidx"].toInteger());
+            return true;
+        }
+        return false;
+    }
+    var (pl, pt, pr, pb) = draw_palette_el.box(#rect, #border, #view);
+    var (ol, ot, orr, ob) = draw_overlay.box(#rect, #border, #view);
+    return drawOverlayMouse(evt, evt.x + pl - ol, evt.y + pt - ot);
+}
+
+function fullscreenRevealBand() {
+    if (!is_osx) return 2;
+    return (workarea_offset > 0 ? workarea_offset : 25) + 16;
+}
+
+function checkFullscreenToolbarReveal(y) {
+    if (view.windowState != View.WINDOW_FULL_SCREEN || dragging) return;
+    var hdr = $(header);
+    if (hdr.style#display == "block") {
+        if (_activePopup) return;
+        var hh = hdr.box(#height, #border);
+        if (hh < 1) hh = 1;
+        if (y > hh) {
+            wait_window_toolbar = false;
+            hdr.style.set { display: "none" };
+        }
+        return;
+    }
+    if (y > fullscreenRevealBand()) {
+        wait_window_toolbar = false;
+        return;
+    }
+    if (wait_window_toolbar) return;
+    wait_window_toolbar = true;
+    self.timer(300ms, function() {
+        if (!wait_window_toolbar) return;
+        var extra = is_osx ? 10 : 0;
+        if (view.windowState == View.WINDOW_FULL_SCREEN) {
+            hdr.style.set {
+                display: "block",
+                padding: (2 * workarea_offset + extra) + "px 0 0 0",
+            };
+        }
+        wait_window_toolbar = false;
+    });
+}
+
+$(header).onMouse = function(evt) {
+    if (evt.type == Event.MOUSE_LEAVE && view.windowState == View.WINDOW_FULL_SCREEN && !_activePopup) {
+        wait_window_toolbar = false;
+        $(header).style.set { display: "none" };
+    }
+    return false;
+}
+
+self.onMouse = function(evt) {
+    if (is_file_transfer || is_port_forward || is_view_camera || is_terminal) return false;
+    checkFullscreenToolbarReveal(evt.yView);
+    return false;
+}
+
+function handler.onMouse(evt)
+{
+    is_mouse_event_triggered = true;
+    if (is_file_transfer || is_port_forward || is_view_camera || is_terminal) return false;
+    checkFullscreenToolbarReveal(evt.yView);
+    if (draw_mode) {
+        if ((evt.type & (Event.SINKING || 0x8000)) != 0) return false;
+        if (evt.type == Event.MOUSE_WHEEL) {
+            if (draw_dragging) return true;
+            if (!(evt.ctrlKey || evt.commandKey || user_zoom_factor > 1)) return true;
+        } else if (evt.type != Event.MOUSE_ENTER && evt.type != Event.MOUSE_LEAVE) {
+            return true;
+        }
+    }
+    if (!got_mouse_control) {
+        if (Math.abs(evt.x - cur_local_x) > 12 || Math.abs(evt.y - cur_local_y) > 12) {
+            got_mouse_control = true;
+        } else {
+            return;
+        }
+    }
+    var mask = 0;
+    var wheel_delta_x;
+    var wheel_delta_y;
+    switch(evt.type) {
+      case Event.MOUSE_DOWN:
+        mask = 1;
+        dragging = true;
+        handler.capture(true);
+        break;
+      case Event.MOUSE_UP:
+        mask = 2;
+        dragging = false;
+        handler.capture(false);
+        break;
+      case Event.MOUSE_MOVE:
+        if (display_cursor_embedded) {
+            break;
+        }
+        if (cursor_img.style#display != "none" && keyboard_enabled) {
+            cursor_img.style#display = "none";
+        }
+        if (!keyboard_enabled && !useSystemCursor) {
+            updateCursor(true);
+        }
+        if (keyboard_enabled && useSystemCursor) {
+            updateCursor();
+        }
+        checkAutoPan(evt.x, evt.y);
+		break;
+      case Event.MOUSE_WHEEL:
+        // mouseWheelDistance = 8 * [currentUserDefs floatForKey:@"com.apple.scrollwheel.scaling"];
+        if (evt.ctrlKey || evt.metaKey || evt.shiftKey) {
+            var (zdx, zdy) = evt.wheelDeltas;
+            var zdelta = zdy != 0 ? zdy : zdx;
+            if (zdelta != 0) {
+                var zfactor = zdelta > 0 ? 1.1 : (1.0 / 1.1);
+                handler.applyZoomDelta(zfactor);
+            }
+            return true;
+        }
+        if (user_zoom_factor > 1.0) {
+            var (pdx, pdy) = evt.wheelDeltas;
+            if (pdx != 0 || pdy != 0) {
+                stopAutoPan();
+                var cur_sx = scroll_body.scroll(#left) || 0;
+                var cur_sy = scroll_body.scroll(#top) || 0;
+                var pan_w = $(body).box(#width, #border);
+                var pan_h = $(body).box(#height, #border);
+                var pan_max_x = handler.box(#width, #border) - pan_w;
+                var pan_max_y = handler.box(#height, #border) - pan_h;
+                var pan_x = cur_sx - (pdx * PAN_WHEEL_SPEED).toInteger();
+                var pan_y = cur_sy - (pdy * PAN_WHEEL_SPEED).toInteger();
+                if (pan_x < 0) pan_x = 0;
+                if (pan_y < 0) pan_y = 0;
+                if (pan_max_x > 0 && pan_x > pan_max_x) pan_x = pan_max_x;
+                if (pan_max_y > 0 && pan_y > pan_max_y) pan_y = pan_max_y;
+                scroll_body.scrollTo(pan_x, pan_y, false);
+            }
+            return true;
+        }
+        mask = 3;
+        {
+            var (dx, dy) = evt.wheelDeltas;
+            if (is_win) {
+                dx = Math.round(dx * WIN_WHEEL_DELTA);
+                dy = Math.round(dy * WIN_WHEEL_DELTA);
+            }
+            var now_ms = getTime();
+            var ms_since_last = last_wheel_time > 0 ? (now_ms - last_wheel_time) : 999;
+
+            // Detect precision touchpad: fractional deltas or rapid-fire events
+            var is_fractional = (dy != 0 && dy != dy.toInteger()) || (dx != 0 && dx != dx.toInteger());
+            if (ms_since_last < 50) {
+                rapid_wheel_count++;
+            } else if (ms_since_last > 150) {
+                rapid_wheel_count = 0;
+            }
+            var is_touchpad = is_fractional || rapid_wheel_count >= 2;
+
+            if (is_touchpad) {
+                mask = 4;
+            }
+
+            if (dx > 3) dx = 3;
+            else if (dx < -3) dx = -3;
+            if (dy > 3) dy = 3;
+            else if (dy < -3) dy = -3;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                dy = 0;
+            } else {
+                dx = 0;
+            }
+            if (is_touchpad) {
+                dx *= 40;
+                dy *= 40;
+            }
+            if (scroll_speed_factor != 1.0) {
+                dx *= scroll_speed_factor;
+                dy *= scroll_speed_factor;
+            }
+            acc_wheel_delta_x += dx;
+            acc_wheel_delta_y += dy;
+            wheel_delta_x = acc_wheel_delta_x.toInteger();
+            wheel_delta_y = acc_wheel_delta_y.toInteger();
+            acc_wheel_delta_x -= wheel_delta_x;
+            acc_wheel_delta_y -= wheel_delta_y;
+            var now = getTime();
+            var dt = last_wheel_time > 0 ? (now - last_wheel_time) / 1000 : 0;
+            if (dt > 0) {
+                var vx = dx / dt;
+                var vy = dy / dt;
+                if (vx != 0 || vy != 0) {
+                    inertia_velocity_x = vx;
+                    inertia_velocity_y = vy;
+                }
+            }
+            acc_wheel_delta_x0 += dx;
+            acc_wheel_delta_y0 += dy;
+            total_wheel_time += dt;
+            if (dx == 0 && dy == 0) {
+                wheeling = false;
+                if (dt < 0.1 && total_wheel_time > 0) {
+                    var v2 = (acc_wheel_delta_y0 / total_wheel_time) * inertia_velocity_y;
+                    if (v2 > 0) {
+                        v2 = Math.sqrt(v2);
+                        inertia_velocity_y = inertia_velocity_y < 0 ? -v2  : v2;
+                        accWheel(inertia_velocity_y, false);
+                    }
+                    v2 = (acc_wheel_delta_x0 / total_wheel_time) * inertia_velocity_x;
+                    if (v2 > 0) {
+                        v2 = Math.sqrt(v2);
+                        inertia_velocity_x = inertia_velocity_x < 0 ? -v2  : v2;
+                        accWheel(inertia_velocity_x, true);
+                    }
+                }
+                resetWheel();
+            } else {
+                wheeling = true;
+            }
+            last_wheel_time = now;
+            if (wheel_delta_x == 0 && wheel_delta_y == 0) return keyboard_enabled;
+        }
+        break;
+      case Event.MOUSE_DCLICK: // seq: down, up, dclick, up
+        if (user_zoom_factor != 1.0) {
+            handler.resetZoom();
+            return true;
+        }
+        mask = 1;
+        handler.capture(true);
+        break;
+      case Event.MOUSE_ENTER:
+        entered = true;
+        //stdout.println("enter");
+        if (window_focused) {
+            handler.enter(handler.get_keyboard_mode());
+        }
+        handler.set_ime_allowed(keyboard_enabled && handler.is_wayland_no_grab());
+        return keyboard_enabled;
+      case Event.MOUSE_LEAVE:
+        entered = false;
+        //stdout.println("leave");
+        if (!window_focused) {
+            handler.leave(handler.get_keyboard_mode());
+        }
+        handler.set_ime_allowed(false);
+		stopAutoPan();
+        if (is_left_down && handler.peer_platform() == "Android") {
+            is_left_down = false;
+            handler.send_mouse((1 << 3) | 2, 0, 0, evt.altKey,
+                evt.ctrlKey, evt.shiftKey, evt.commandKey);
+        }
+        return keyboard_enabled;
+      default:
+        return false;
+    }
+    var x = evt.x;
+    var y = evt.y;
+    if (mask != 0) {
+        // to gain control of the mouse, user must move mouse
+        if (cur_x != x || cur_y != y) {
+            return keyboard_enabled;
+        }
+    } else {
+        cur_local_x = cur_x = x;
+        cur_local_y = cur_y = y;
+    }
+    if (mask != 3 && mask != 4) {
+        resetWheel();
+    }
+    if (!keyboard_enabled) return false;
+    x = (x / display_scale).toInteger();
+    y = (y / display_scale).toInteger();
+    // insert down between two up, osx has this behavior for triple click
+    if (last_mouse_mask == 2 && mask == 2) {
+        handler.send_mouse((evt.buttons << 3) | 1, 0, 0, evt.altKey,
+                evt.ctrlKey, evt.shiftKey, evt.commandKey);
+    }
+    last_mouse_mask = mask;
+    if (evt.buttons == 1) {
+        if (mask == 1) {
+            is_left_down = true;
+        } else if (mask == 2) {
+            is_left_down = false;
+        }
+    }
+    // to-do: altKey, ctrlKey etc
+    handler.send_mouse((evt.buttons << 3) | mask,
+                (mask == 3 || mask == 4) ? wheel_delta_x : (mask == 0 ? x + display_origin_x : 0),
+                (mask == 3 || mask == 4) ? wheel_delta_y : (mask == 0 ? y + display_origin_y : 0),
+                evt.altKey,
+                evt.ctrlKey, evt.shiftKey, evt.commandKey);
+    return true;
+};
+
+event drop $(#handler) (evt) {
+    if (evt.draggingDataType != #file || draw_mode || !is_win) return true;
+    if (is_file_transfer || is_port_forward || is_view_camera || is_terminal) return true;
+    var files = evt.dragging;
+    if (typeof files != #array) files = [files];
+    if (!handler.copy_dropped_files(files)) return true;
+    handler.send_mouse(0, toRemoteX(evt.x), toRemoteY(evt.y), false, false, false, false);
+    handler.send_mouse((1 << 3) | 1, 0, 0, false, false, false, false);
+    handler.send_mouse((1 << 3) | 2, 0, 0, false, false, false, false);
+    self.timer(700ms, function() { handler.paste_on_remote(); });
+    return true;
+}
+
+var cur_id = -1;
+var cur_hotx = 0;
+var cur_hoty = 0;
+var cur_img = null;
+var cur_x = 0;
+var cur_y = 0;
+var cur_local_x = 0;
+var cur_local_y = 0;
+var cursors = {};
+var image_binded;
+
+var cursor_size_scale = 1.0;
+function readCursorSizeScale() {
+    var v = handler.get_option("cursor-size");
+    if (v == "cursor-size-1-5") return 1.5;
+    if (v == "cursor-size-2") return 2.0;
+    return 1.0;
+}
+
+function scaleCursorImage(img) {
+    cursor_size_scale = readCursorSizeScale();
+    var s = display_scale * cursor_size_scale;
+    var w = (img.width * s).toInteger();
+    var h = (img.height * s).toInteger();
+    cursor_img.style.set {
+        width: w + "px",
+        height: h + "px",
+    };
+    self.bindImage("in-memory:cursor", img);
+    if (s == 1) return img;
+    function paint(gfx) {
+        gfx.drawImage(img, 0, 0, w, h);
+    }
+    return new Image(w, h, paint);
+}
+
+var useSystemCursor = true;
+function updateCursor(system=false) {
+    //stdout.println("Update cursor, system: " + system);
+    useSystemCursor = true; //system;
+    if (system) {
+        handler.style#cursor = undefined;
+    } else if (cur_img) {
+        handler.style.cursor(cur_img, (cur_hotx * display_scale * cursor_size_scale).toInteger(), (cur_hoty * display_scale * cursor_size_scale).toInteger());
+    }
+}
+
+function refreshCursor() {
+	if (display_cursor_embedded) {
+        cursor_img.style#display = "block";
+        return;
+    }
+    if (cur_id != -1) {
+        handler.setCursorId(cur_id);
+    }
+}
+
+handler.setCursorData = function(id, hotx, hoty, width, height, colors) {
+    cur_hotx = hotx;
+    cur_hoty = hoty;
+    var img = Image.fromBytes(colors);
+    if (img) {
+        image_binded = true;
+        cursors[id] = [img, hotx, hoty, width, height];
+        cur_id = id;
+        cur_img = scaleCursorImage(img);
+        self.timer(1ms, updateCursor);
+    }
+}
+
+handler.setCursorId = function(id) {
+    var img = cursors[id];
+    if (img) {
+        cur_id = id;
+        image_binded = true;
+        cur_hotx = img[1];
+        cur_hoty = img[2];
+        cur_img = scaleCursorImage(img[0]);
+        self.timer(1ms, updateCursor);
+    }
+}
+
+var got_mouse_control = true;
+handler.setCursorPosition = function(x, y) {
+    if (!image_binded) return;
+    got_mouse_control = false;
+    cur_x = x - display_origin_x;
+    cur_y = y - display_origin_y;
+    var x = cur_x - cur_hotx * cursor_size_scale;
+    var y = cur_y - cur_hoty * cursor_size_scale;
+    x *= display_scale / scaleFactor;
+    y *= display_scale / scaleFactor;
+    cursor_img.style.set {
+        left: x + "px",
+        top: y + "px",
+    };
+    if (cursor_img.style#display == 'none') {
+        cursor_img.style#display = "block";
+    }
+}
+
+var launch_monitor = handler.get_launch_monitor();
+var launch_cascade = handler.get_launch_cascade();
+function self.ready() {
+    if (kvm_link) {
+        view.windowState = View.WINDOW_HIDDEN;
+        return;
+    }
+    applyDarkTheme();
+    var w = scaleIt(960);
+    var h = scaleIt(640);
+    if (is_file_transfer || is_port_forward || is_terminal) {
+        var r = handler.get_size();
+        if (isReasonableSize(r) && r[2] > 0) {
+            var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+            if (r[2] > sw || r[3] > sh) {
+                centerize(r[2], r[3]);
+            } else {
+                view.move(r[0], r[1], r[2], r[3]);
+            }
+        } else {
+            centerize(w, h);
+        }
+    } else if (launch_monitor >= 0) {
+        view.windowMonitor = launch_monitor;
+        view.windowState = View.WINDOW_MAXIMIZED;
+    } else if (launch_cascade > 0) {
+        var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+        var d = scaleIt(40) * launch_cascade;
+        view.move(sx + d, sy + d, sw - d, sh - d);
+    } else {
+        centerize(w, h);
+    }
+    if (!is_port_forward) connecting();
+    if (is_file_transfer) initializeFileTransfer();
+    if (is_port_forward) initializePortForward();
+    if (is_terminal) initializeTerminal();
+}
+
+var workarea_offset = 0;
+var size_adapted;
+handler.adaptSize = function() {
+    if (kvm_link || size_adapted || launch_monitor >= 0 || launch_cascade > 0) return;
+    size_adapted = true;
+    var (sx, sy, sw, sh) = view.screenBox(#workarea, #rectw);
+    var (fx, fy, fw, fh) = view.screenBox(#frame, #rectw);
+    if (is_osx) workarea_offset = sy;
+    var r = handler.get_size();
+    if (isReasonableSize(r) && r[2] > 0) {
+        if (r[2] >= sw && r[3] >= sh) {
+            view.windowState = View.WINDOW_MAXIMIZED;
+        } else {
+            view.move(r[0], r[1], r[2], r[3]);
+        }
+    } else {
+        // Use original remote display dimensions so that shrink mode
+        // does not prevent the window from being maximized.
+        var w = display_width || handler.box(#width, #border);
+        var h = display_height || handler.box(#height, #border);
+        if (w >= sw || h >= sh) {
+            view.windowState = View.WINDOW_MAXIMIZED;
+            return;
+        }
+        // extra for border
+        var extra = 2;
+        centerize(w + extra, h + extra);
+    }
+}
+
+var session_note_asked = false;
+
+function showSessionNoteDialog(then=null) {
+    handler.set_dialog_key_pause(true);
+    msgbox("custom", translate("Session Note"), "<div .form> \
+        <div>" + translate("Add a note for this session. It appears in the session log and export.") + "</div> \
+        <textarea .outline-focus spellcheck=\"false\" name=\"text\" style=\"overflow: scroll-indicator; width:*; height: 100px; font-size: 1.2em; padding: 0.5em; margin-top: 8px;\"></textarea> \
+        <div style=\"margin-top: 10px;\"><button|checkbox(billable) #billable checked=\"true\">" + translate("Billable") + "</button></div> \
+        </div>", "", function(res=null) {
+        handler.set_dialog_key_pause(false);
+        if (res) {
+            var text = (res.text || "").trim();
+            var billable = res.billable !== false;
+            handler.send_session_note(text, billable);
+            if (then) then();
+            else self.timer(150ms, function() { view.close(); });
+        } else {
+            session_note_asked = false;
+        }
+    }, 320);
+}
+
+function peerCloseWatch() {
+    if (handler.check_peer_close_signal()) {
+        if (is_file_transfer && fileTransferRunning()) return;
+        session_note_asked = true;
+        view.close();
+        return;
+    }
+    self.timer(800ms, peerCloseWatch);
+}
+if (handler.is_display_child() || is_file_transfer) self.timer(800ms, peerCloseWatch);
+
+var switched_session_returned = false;
+function self.closing() {
+    if (kvm_link) return;
+    if (!switched_session_returned && !handler.is_display_child() && handler.return_switched_session()) {
+        switched_session_returned = true;
+        self.timer(400ms, function() { view.close(); });
+        return false;
+    }
+    var (x, y, w, h) = view.box(#rectw, #border, #screen);
+    if (is_file_transfer) save_file_transfer_close_state();
+    if (is_file_transfer || is_port_forward || is_terminal || size_adapted) handler.save_size(x, y, w, h);
+    if (!session_note_asked && !handler.is_display_child() && pi && pi.session_notes && (pi.displays || []).length > 0
+        && !is_file_transfer && !is_port_forward && !is_terminal && !is_view_camera) {
+        session_note_asked = true;
+        showSessionNoteDialog();
+        return false;
+    }
+    if (!handler.is_display_child() && !is_file_transfer && !is_port_forward && !is_terminal && !is_view_camera) {
+        handler.signal_close_peer_windows();
+    }
+    if (recording) handler.record_screen(false, 0, display_width, display_height);
+    if (is_terminal && terminal_opened) handler.send_terminal_close(terminal_id);
+}
+
+var qualityMonitor;
+var qualityMonitorData = [];
+
+class QualityMonitor: Reactor.Component
+{
+    function this() {
+        qualityMonitor = this;
+        if (handler.get_toggle_option("show-quality-monitor")) {
+            $(#quality-monitor).style.set{ display: "block" };
+        }
+    }
+
+    function render() {
+        return <div >
+            <div>
+                Speed: {qualityMonitorData[0]}
+            </div>
+            <div>
+                FPS: {qualityMonitorData[1]}
+            </div>
+            <div>
+                Delay: {qualityMonitorData[2]} ms
+            </div>
+            <div>
+                Target Bitrate: {qualityMonitorData[3]}kb
+            </div>
+            <div>
+                Codec: {qualityMonitorData[4]}
+            </div>
+        </div>;
+    }
+}
+
+$(#quality-monitor).content(<QualityMonitor />);
+
+var svg_pal_pen = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>;
+var svg_pal_line = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"/></svg>;
+var svg_pal_arrow = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="11 5 19 5 19 13"/></svg>;
+var svg_pal_rect = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>;
+var svg_pal_ellipse = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="8" ry="6"/></svg>;
+var svg_pal_undo = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 7 3 13 9 13"/><path d="M3 13a9 9 0 1 0 3-7.7"/></svg>;
+var svg_pal_clear = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+
+var drawPalette;
+class DrawPalette: Reactor.Component
+{
+    function this() {
+        drawPalette = this;
+    }
+
+    function render() {
+        var v2 = annotationV2();
+        var swatches = DRAW_COLORS.map(function(c, i) {
+            return <div title={translate('Color')} cidx={i}
+                class={"color-swatch" + (draw_color_idx == i ? " selected" : "")}
+                style={"background-color: #" + c[0]} />;
+        });
+        var widths = [];
+        if (v2) {
+            var width_titles = [translate('Thin'), translate('Medium'), translate('Thick')];
+            widths = DRAW_WIDTHS.map(function(w, i) {
+                return <button title={width_titles[i]} widx={i}
+                    class={"width-btn" + (draw_width_idx == i ? " selected" : "")}>
+                    <div .width-dot style={"width:" + (3 + i * 4) + "px; height:" + (3 + i * 4) + "px"} />
+                </button>;
+            });
+        }
+        return <div .palette-box>
+            {v2 ? <button #tool-pen title={translate('Pen')} class={draw_tool == 5 ? "selected" : ""}>{svg_pal_pen}</button> : ""}
+            <button #tool-line title={translate('Line')} class={draw_tool == 1 ? "selected" : ""}>{svg_pal_line}</button>
+            <button #tool-arrow title={translate('Arrow')} class={draw_tool == 2 ? "selected" : ""}>{svg_pal_arrow}</button>
+            <button #tool-rect title={translate('Rectangle')} class={draw_tool == 3 ? "selected" : ""}>{svg_pal_rect}</button>
+            <button #tool-ellipse title={translate('Ellipse')} class={draw_tool == 4 ? "selected" : ""}>{svg_pal_ellipse}</button>
+            <span .palette-sep />
+            {swatches}
+            <span .palette-sep />
+            {widths}
+            {v2 ? <span .palette-sep /> : ""}
+            {v2 ? <button #draw-undo title={translate('Undo')}>{svg_pal_undo}</button> : ""}
+            <button #draw-clear title={translate('Clear drawings')}>{svg_pal_clear}</button>
+            <button #draw-exit title={translate('Exit draw mode')}>{svg_close}</button>
+        </div>;
+    }
+
+    event click $(button#tool-pen) { setDrawTool(5); }
+    event click $(button#tool-line) { setDrawTool(1); }
+    event click $(button#tool-arrow) { setDrawTool(2); }
+    event click $(button#tool-rect) { setDrawTool(3); }
+    event click $(button#tool-ellipse) { setDrawTool(4); }
+    event click $(div.color-swatch) (_, me) { setDrawColor(me.attributes["cidx"].toInteger()); }
+    event click $(button.width-btn) (_, me) { setDrawWidth(me.attributes["widx"].toInteger()); }
+    event click $(button#draw-undo) { drawUndo(); }
+    event click $(button#draw-clear) { handler.clear_annotations(); }
+    event click $(button#draw-exit) { exitDrawMode(); }
+}
+
+$(#draw-palette).content(<DrawPalette />);
+handler.updateQualityStatus = function(speed, fps, delay, bitrate, codec_format) {
+    speed ? qualityMonitorData[0] = speed:null;
+    fps ? qualityMonitorData[1] = fps:null;
+    delay ? qualityMonitorData[2] = delay:null;
+    bitrate ? qualityMonitorData[3] = bitrate:null;
+    codec_format ? qualityMonitorData[4] = codec_format:null;
+    qualityMonitor.update();
+    // Update codec menu selection without full header re-render (avoids menu flicker)
+    if (codec_format) self.timer(1ms, toggleMenuState);
+}
+
+handler.setPermission = function(name, enabled) {
+    self.timer(60ms, function() {
+    if (name == "keyboard") keyboard_enabled = enabled;
+    if (name == "audio") audio_enabled = enabled;
+    if (name == "file") file_enabled = enabled;
+    if (name == "clipboard") clipboard_enabled = enabled;
+    if (name == "restart") restart_enabled = enabled;
+    if (name == "recording") recording_enabled = enabled;
+    input_blocked = false;
+    header.update();
+    });
+}
+
+handler.closeSuccess = function() {
+    // handler.msgbox("success", "Successful", "Ready to go.");
+	handler.msgbox("", "", "");
+}
+
+handler.printerRequest = function(id, path) {
+    if (kvm_on) stopKvm();
+    msgbox("select-printer", translate("Remote Print Job"), "", "", function(res) {
+        if (res) {
+            var printerName = res.printer || "";
+
+            if (!printerName) {
+                try { printerName = handler.get_default_printer(); } catch(e) {}
+            }
+
+            var alwaysUse = res.always_use_printer || false;
+            handler.save_printer_selection(printerName, alwaysUse);
+            handler.on_printer_selected(id, path, printerName);
+        }
+    }, 220, 450, false);
+}
+
+self.timer(500ms, function() {
+    if (!is_file_transfer && !is_port_forward && !is_terminal) {
+        try {
+            var req = handler.get_pending_printer_request();
+            if (req && req.length == 2) {
+                handler.printerRequest(req[0], req[1]);
+            }
+        } catch(e) {}
+    }
+    return true;
+});
