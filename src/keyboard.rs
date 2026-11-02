@@ -1,5 +1,5 @@
 #[cfg(feature = "flutter")]
-use crate::flutter::{CUR_SESSION_ID, SESSIONS};
+use crate::flutter::get_cur_session;
 #[cfg(target_os = "windows")]
 use crate::platform::windows::{get_char_from_vk, get_unicode_from_vk};
 #[cfg(not(any(feature = "flutter", feature = "cli")))]
@@ -123,7 +123,10 @@ pub mod client {
                 }
             }
             GrabState::Wait => {
-                #[cfg(target_os = "windows")]
+                // Flutter: the main window and the session windows share this
+                // process, so "a window of ours is in front" doesn't mean the
+                // session still has focus. Flutter reports focus itself.
+                #[cfg(all(target_os = "windows", not(feature = "flutter")))]
                 if crate::platform::windows::is_foreground_window_ours()
                     || crate::platform::windows::is_pointer_over_our_window()
                 {
@@ -332,11 +335,7 @@ fn get_keyboard_mode() -> String {
         return session.get_keyboard_mode();
     }
     #[cfg(feature = "flutter")]
-    if let Some(session) = SESSIONS
-        .read()
-        .unwrap()
-        .get(&*CUR_SESSION_ID.read().unwrap())
-    {
+    if let Some(session) = get_cur_session() {
         return session.get_keyboard_mode();
     }
     "legacy".to_string()
@@ -344,7 +343,7 @@ fn get_keyboard_mode() -> String {
 
 pub fn start_grab_loop() {
     std::env::set_var("KEYBOARD_ONLY", "y");
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", not(feature = "flutter")))]
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(100));
         if crate::platform::windows::is_foreground_window_ours() {
@@ -387,13 +386,14 @@ pub fn start_grab_loop() {
             // The session window's focus flaps several times a second, and keys
             // landing in a gap leak to the local machine. Keep capturing for a
             // short grace period after the foreground was last ours.
-            #[cfg(target_os = "windows")]
+            #[cfg(all(target_os = "windows", not(feature = "flutter")))]
             let want_keys = SESSION_WANTS_KEYS.load(Ordering::Relaxed)
                 && (POINTER_OVER_OURS.load(Ordering::Relaxed)
                     || FOREGROUND_OURS_POLLS_AGO.load(Ordering::Relaxed) <= 5);
-            #[cfg(not(target_os = "windows"))]
-            let want_keys = KEYBOARD_HOOKED.load(Ordering::Relaxed);
-            #[cfg(not(any(feature = "flutter", feature = "cli")))]
+            // Flutter: capture while the remote view has keyboard focus
+            // (set on focus by GrabState::Run, cleared by GrabState::Wait).
+            #[cfg(any(not(target_os = "windows"), feature = "flutter"))]
+            let want_keys = KEYBOARD_HOOKED.load(Ordering::Relaxed);            #[cfg(not(any(feature = "flutter", feature = "cli")))]
             let route = crate::kvm::route_key(key, is_press);
             #[cfg(not(any(feature = "flutter", feature = "cli")))]
             let kvm = matches!(route, crate::kvm::KeyRoute::Remote);
@@ -902,11 +902,7 @@ pub fn send_key_event(key_event: &KeyEvent) {
         session.send_key_event(key_event);
     }
     #[cfg(feature = "flutter")]
-    if let Some(session) = SESSIONS
-        .read()
-        .unwrap()
-        .get(&*CUR_SESSION_ID.read().unwrap())
-    {
+    if let Some(session) = get_cur_session() {
         session.send_key_event(key_event);
     }
 }
@@ -917,11 +913,7 @@ pub fn get_peer_platform() -> String {
         return session.peer_platform();
     }
     #[cfg(feature = "flutter")]
-    if let Some(session) = SESSIONS
-        .read()
-        .unwrap()
-        .get(&*CUR_SESSION_ID.read().unwrap())
-    {
+    if let Some(session) = get_cur_session() {
         return session.peer_platform();
     }
     "Windows".to_string()

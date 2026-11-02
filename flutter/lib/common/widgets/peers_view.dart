@@ -13,7 +13,6 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../common.dart';
 import '../../common/pinned_peers.dart';
@@ -138,32 +137,53 @@ class _PeersViewState extends State<_PeersView>
 		child: Consumer<Peers>(builder: (context, peers, child) {
 		  if (peers.peers.isEmpty) {
 			gFFI.peerTabModel.setCurrentTabCachedPeers([]);
-			return Center(
-			  child: Column(
-				mainAxisAlignment: MainAxisAlignment.center,
-				children: [
-				  SvgPicture.asset( //hophere
-					'assets/featured.svg', // Provide the path to your SVG file
-					height: 100, // Use height instead of size
-				  ).paddingOnly(bottom: 10),
-				  Text(
-					translate(
-					  _emptyMessages[widget.peers.loadEvent] ?? 'Empty',
-					),
-					textAlign: TextAlign.center,
-					style: TextStyle(
-					  color: Theme.of(context).tabBarTheme.labelColor,
-					),
-				  ),
-				],
-			  ),
-			);
+			return _buildEmptyState(context);
 		  } else {
 			return _buildPeersView(peers);
 		  }
 		}),
 	  );
 	}
+
+  /// Icon badge, title and hint shown when a tab has no devices.
+  Widget _buildEmptyState(BuildContext context) {
+    final (IconData icon, String title) = switch (widget.peers.loadEvent) {
+      LoadEvent.recent => (Icons.history_rounded, 'No recent sessions'),
+      LoadEvent.favorite => (Icons.star_rounded, 'No favorites yet'),
+      LoadEvent.lan => (Icons.lan_rounded, 'No devices found'),
+      LoadEvent.addressBook => (Icons.contacts_rounded, 'No contacts yet'),
+      _ => (Icons.devices_rounded, 'Nothing here yet'),
+    };
+    final textColor = Theme.of(context).textTheme.titleLarge?.color;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: MyTheme.accent.withOpacity(0.10),
+              border: Border.all(color: MyTheme.accent.withOpacity(0.18)),
+            ),
+            child: Icon(icon, size: 28, color: MyTheme.accent),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            translate(title),
+            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            translate(_emptyMessages[widget.peers.loadEvent] ?? 'Empty'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: textColor?.withOpacity(0.6)),
+          ),
+        ],
+      ),
+    );
+  }
 
   onVisibilityChanged(VisibilityInfo info) {
     final peerId = _peerId((info.key as ValueKey).value);

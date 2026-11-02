@@ -1,6 +1,6 @@
 [package]
 name = "hoptodesk"
-version = "1.46.74"
+version = "1.46.75"
 authors = ["hoptodesk <info@hoptodesk.com>"]
 edition = "2021"
 build= "build.rs"

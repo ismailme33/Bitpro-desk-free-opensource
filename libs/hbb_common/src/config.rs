@@ -2552,7 +2552,26 @@ pub fn is_disable_account() -> bool {
 
 #[inline]
 pub fn is_disable_installation() -> bool {
-    is_some_hard_opton("disable-installation")
+    is_some_hard_opton("disable-installation") || is_msix_package()
+}
+
+/// True when running from a Microsoft Store (MSIX) package. Windows installs
+/// and updates those itself, so the app's own installer and updater are off.
+pub fn is_msix_package() -> bool {
+    #[cfg(windows)]
+    {
+        std::env::current_exe()
+            .map(|p| {
+                p.to_string_lossy()
+                    .to_lowercase()
+                    .contains("\\windowsapps\\")
+            })
+            .unwrap_or(false)
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
 }
 
 // This function must be kept the same as the one in flutter code.

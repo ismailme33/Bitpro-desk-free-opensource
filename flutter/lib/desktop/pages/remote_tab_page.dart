@@ -359,6 +359,14 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
           await Future.delayed(Duration(milliseconds: 100));
           c++;
         }
+        // The close request can get lost, leaving an empty black window.
+        // Hide it directly as the close handler would.
+        if (tabController.state.value.tabs.isEmpty &&
+            !await windowController.isHidden()) {
+          await windowController.hide();
+          await rustDeskWinManager
+              .call(WindowType.Main, kWindowEventHide, {"id": windowId()});
+        }
       }
 
       loopCloseWindow();

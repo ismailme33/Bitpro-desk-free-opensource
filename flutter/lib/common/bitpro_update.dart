@@ -48,9 +48,12 @@ bool _isTrustedUrl(String url) {
       uri.host.endsWith('.$_kTrustedDomain');
 }
 
-/// Starts checking now and every few hours (Windows desktop only).
+/// Starts checking now and every few hours (Windows desktop only). Off in the
+/// Microsoft Store version, which the Store updates.
 void startBitproUpdateCheck() {
-  if (!isWindows || _checkTimer != null) return;
+  if (!isWindows || _checkTimer != null || bind.isDisableInstallation()) {
+    return;
+  }
   checkBitproUpdate();
   _checkTimer = Timer.periodic(_kCheckInterval, (_) => checkBitproUpdate());
 }
