@@ -110,7 +110,7 @@ class _FileManagerPageState extends State<FileManagerPage> {
         appBar: AppBar(
           backgroundColor:  MyTheme.headerGray,
 		  leading: Row(children: [
-            IconButton(
+            IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                 icon: Icon(Icons.close),
                 onPressed: () =>
                     clientClose(gFFI.sessionId, gFFI.dialogManager)),
@@ -296,11 +296,11 @@ class _FileManagerPageState extends State<FileManagerPage> {
                 setState(() {});
               },
               actions: [
-                IconButton(
+                IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: Icon(Icons.compare_arrows),
                   onPressed: () => setState(() => showLocal = !showLocal),
                 ),
-                IconButton(
+                IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: Icon(Icons.delete_forever),
                   onPressed: selectedItems != null
                       ? () async {
@@ -325,11 +325,11 @@ class _FileManagerPageState extends State<FileManagerPage> {
                 setState(() {});
               },
               actions: [
-                IconButton(
+                IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: Icon(Icons.compare_arrows),
                   onPressed: () => setState(() => showLocal = !showLocal),
                 ),
-                IconButton(
+                IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: Icon(Icons.paste),
                   onPressed: () {
                     selectMode.value = SelectMode.none;
@@ -620,11 +620,11 @@ class _FileManagerViewState extends State<FileManagerView> {
           })),
           Row(
             children: [
-              IconButton(
+              IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                 icon: Icon(Icons.arrow_back),
                 onPressed: controller.goBack,
               ),
-              IconButton(
+              IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                 icon: Icon(Icons.arrow_upward),
                 onPressed: controller.goToParentDirectory,
               ),
@@ -672,7 +672,7 @@ class _FileManagerViewState extends State<FileManagerView> {
     final list = PathUtil.split(shortPath, isWindows);
     final breadCrumbList = [
       BreadCrumbItem(
-          content: IconButton(
+          content: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
         icon: Icon(Icons.home_filled),
         onPressed: onHome,
       ))
@@ -734,7 +734,7 @@ class BottomSheetBody extends StatelessWidget {
                     ],
                   ),
                   Row(children: () {
-                    _actions.add(IconButton(
+                    _actions.add(IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       icon: Icon(Icons.cancel_outlined),
                       onPressed: onCanceled,
                     ));

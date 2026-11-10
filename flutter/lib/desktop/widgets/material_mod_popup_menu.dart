@@ -380,7 +380,7 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
       child: Semantics(
         enabled: widget.enabled,
         button: true,
-        // child: InkWell(
+        // child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
         //   onTap: widget.enabled ? handleTap : null,
         //   canRequestFocus: widget.enabled,
         //   mouseCursor: _EffectiveMouseCursor(
@@ -1389,7 +1389,7 @@ class PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
       return Tooltip(
         message:
             widget.tooltip ?? MaterialLocalizations.of(context).showMenuTooltip,
-        child: InkWell(
+        child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           onTap: widget.enabled ? showButtonMenu : null,
           onHover: widget.onHover,
           canRequestFocus: _canRequestFocus,

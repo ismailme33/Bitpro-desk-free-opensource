@@ -408,7 +408,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                   ])),
               Offstage(
                   offstage: !_enableDirectIPAccess,
-                  child: IconButton(
+                  child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       padding: EdgeInsets.zero,
                       icon: Icon(
                         Icons.edit,
@@ -455,7 +455,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                   ])),
               Offstage(
                   offstage: !_allowAutoDisconnect,
-                  child: IconButton(
+                  child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       padding: EdgeInsets.zero,
                       icon: Icon(
                         Icons.edit,
@@ -810,7 +810,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       Offstage(
                           offstage: _useHopToDeskNetwork ||
                               _localNetworkHost.isNotEmpty,
-                          child: IconButton(
+                          child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                               padding: EdgeInsets.zero,
                               icon: Icon(
                                 Icons.edit,
@@ -1019,7 +1019,7 @@ void showAbout(OverlayDialogManager dialogManager) {
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
         Text('Version: $version'),
         if (!isIOS)
-        InkWell(
+        InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
               onTap: () async {
                 const url = 'https://www.hoptodesk.com/';
                 if (await canLaunchUrl(Uri.parse(url))) {
@@ -1043,7 +1043,7 @@ void showAbout(OverlayDialogManager dialogManager) {
 class ScanButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
       icon: Icon(Icons.qr_code_scanner),
       onPressed: () {
         Navigator.push(
@@ -1082,7 +1082,7 @@ class __DisplayPageState extends State<_DisplayPage> {
     RxBool showCustomImageQuality = false.obs;
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
+        leading: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
             onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.arrow_back_ios)),
         title: Text(translate('Display Settings')),
@@ -1190,7 +1190,7 @@ class __ManageTrustedDevicesState extends State<_ManageTrustedDevices> {
         title: Text(translate('Manage trusted devices')),
         centerTitle: true,
         actions: [
-          Obx(() => IconButton(
+          Obx(() => IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
               icon: Icon(Icons.delete, color: Colors.white),
               onPressed: selectedDevices.isEmpty
                   ? null
@@ -1386,7 +1386,7 @@ void showDashboardLink(
                   enableInteractiveSelection: true,
                   decoration: InputDecoration(
                     hintText: translate("Invite code"),
-                    suffixIcon: IconButton(
+                    suffixIcon: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       icon: const Icon(Icons.content_paste, size: 18),
                       tooltip: translate("Paste"),
                       onPressed: () async {
@@ -1478,7 +1478,7 @@ Future<String?> changeCustomApiUrl(String currentUrl) async {
                     decoration: InputDecoration(
                         hintText: 'https://',
                         isCollapsed: true,
-                        suffix: IconButton(
+                        suffix: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.clear, size: 16),
                             onPressed: () => controller.clear()),

@@ -102,7 +102,7 @@ class _InstallPageBodyState extends State<_InstallPageBody>
   }
 
   InkWell Option(RxBool option, {String label = ''}) {
-    return InkWell(
+    return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
       // todo mouseCursor: "SystemMouseCursors.forbidden" or no cursor on btnEnabled == false
       borderRadius: BorderRadius.circular(6),
       onTap: () => btnEnabled.value ? option.value = !option.value : null,
@@ -180,7 +180,7 @@ class _InstallPageBodyState extends State<_InstallPageBody>
                         children: [
                           Text(translate('agreement_tip'))
                               .marginOnly(bottom: em),
-                          InkWell(
+                          InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                             hoverColor: Colors.transparent,
                             onTap: () => launchUrlString(
                                 'https://rustdesk.com/privacy.html'),

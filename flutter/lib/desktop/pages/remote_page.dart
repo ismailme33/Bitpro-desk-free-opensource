@@ -9,6 +9,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 
 import '../../consts.dart';
+import '../../common/bitpro_rating.dart';
+import '../../utils/multi_window_manager.dart';
 import '../../common/widgets/overlay.dart';
 import '../../common/widgets/remote_input.dart';
 import '../../common.dart';
@@ -74,6 +76,7 @@ class RemotePage extends StatefulWidget {
 class _RemotePageState extends State<RemotePage>
     with AutomaticKeepAliveClientMixin, MultiWindowListener {
   Timer? _timer;
+  DateTime? _connectedAt; // first image received
   String keyboardMode = "legacy";
   bool _isWindowBlur = false;
   final _cursorOverImage = false.obs;
@@ -112,6 +115,7 @@ class _RemotePageState extends State<RemotePage>
     _ffi = FFI(widget.sessionId);
     Get.put<FFI>(_ffi, tag: widget.id);
     _ffi.imageModel.addCallbackOnFirstImage((String peerId) {
+      _connectedAt ??= DateTime.now();
       showKBLayoutTypeChooserIfNeeded(
           _ffi.ffiModel.pi.platform, _ffi.dialogManager);
       _ffi.recordingModel
@@ -241,6 +245,16 @@ class _RemotePageState extends State<RemotePage>
   @override
   Future<void> dispose() async {
     final closeSession = closeSessionOnDispose.remove(widget.id) ?? true;
+    // Tell the main window a session ended after being connected a while
+    // (used for the occasional thank-you bar). Not when a tab just moves.
+    final connectedAt = _connectedAt;
+    if (closeSession &&
+        connectedAt != null &&
+        DateTime.now().difference(connectedAt) >= kBitproGoodSessionLength) {
+      rustDeskWinManager
+          .call(WindowType.Main, kWindowEventBitproSessionDone, '')
+          .catchError((_) => null);
+    }
 
     // https://github.com/flutter/flutter/issues/64935
     super.dispose();

@@ -10,6 +10,7 @@ import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/common/pinned_peers.dart';
 import 'package:flutter_hbb/common/bitpro_update.dart';
+import 'package:flutter_hbb/common/bitpro_rating.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
@@ -150,7 +151,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                   left: 12,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: InkWell(
+                    child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                       child: Obx(
                         () => Icon(
                           Icons.settings,
@@ -279,7 +280,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       required VoidCallback onTap}) {
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     RxBool hover = false.obs;
-    return InkWell(
+    return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
       onTap: onTap,
       onHover: (value) => hover.value = value,
       borderRadius: BorderRadius.circular(6),
@@ -643,7 +644,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       (help != null
                           ? <Widget>[
                               Center(
-                                  child: InkWell(
+                                  child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                                       onTap: () async =>
                                           await launchUrl(Uri.parse(link!)),
                                       child: Text(
@@ -661,7 +662,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           Positioned(
             top: 18,
             right: 0,
-            child: IconButton(
+            child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
               icon: Icon(
                 Icons.close,
                 color: Colors.white,
@@ -679,6 +680,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     super.initState();
     refreshJumpList();
     startBitproUpdateCheck();
+    startBitproRatingPrompt();
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
@@ -768,6 +770,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         await rustDeskWinManager.registerActiveWindow(call.arguments["id"]);
       } else if (call.method == kWindowEventHide) {
         await rustDeskWinManager.unregisterActiveWindow(call.arguments['id']);
+      } else if (call.method == kWindowEventBitproSessionDone) {
+        onBitproGoodSession();
       } else if (call.method == kWindowConnect) {
         await connectMainDesktop(
           call.arguments['id'],

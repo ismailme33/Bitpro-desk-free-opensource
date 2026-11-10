@@ -112,7 +112,7 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
       ]),
         trailingIcon: Transform.scale(
           scale: (isDesktop || isWebDesktop) ? 0.8 : 1,
-          child: IconButton(
+          child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
             onPressed: () {
               if (isMobile && Navigator.canPop(context)) {
                 Navigator.pop(context);

@@ -293,7 +293,7 @@ Future<String> changeDirectAccessPort(
                         hintText: '21118',
                         isCollapsed: true,
                         prefix: Text('$currentIP : '),
-                        suffix: IconButton(
+                        suffix: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.clear, size: 16),
                             onPressed: () => controller.clear())),
@@ -340,7 +340,7 @@ Future<String> changeAutoDisconnectTimeout(String old) async {
                     decoration: InputDecoration(
                         hintText: '10',
                         isCollapsed: true,
-                        suffix: IconButton(
+                        suffix: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.clear, size: 16),
                             onPressed: () => controller.clear())),
@@ -741,7 +741,7 @@ class _PasswordWidgetState extends State<PasswordWidget> {
       hintText: translate(widget.hintText ?? 'Enter your password'),
       controller: widget.controller,
       prefixIcon: DialogTextField.kPasswordIcon,
-      suffixIcon: IconButton(
+      suffixIcon: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
         icon: Icon(
             // Based on passwordVisible state choose the icon
             _passwordVisible ? Icons.visibility : Icons.visibility_off,
@@ -1097,7 +1097,7 @@ void showRequestElevationDialog(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
+              InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                 hoverColor: Colors.transparent,
                 onTap: () => groupValue.value = '',
                 child: Text(
@@ -1126,7 +1126,7 @@ void showRequestElevationDialog(
           onChanged: onRadioChanged,
         ).marginOnly(right: 10),
         Expanded(
-          child: InkWell(
+          child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
             hoverColor: Colors.transparent,
             onTap: () => onRadioChanged('logon'),
             child: Text(
@@ -2222,7 +2222,7 @@ void setSharedAbPasswordDialog(String abName, Peer peer) {
               autofocus: true,
               obscureText: !passwordVisible,
               decoration: InputDecoration(
-                suffixIcon: IconButton(
+                suffixIcon: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: Icon(
                       passwordVisible ? Icons.visibility : Icons.visibility_off,
                       color: MyTheme.lightTheme.primaryColor),

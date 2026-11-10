@@ -119,7 +119,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
   Widget _buildUpdateUI() {
     return _updateUrl.isEmpty
         ? const SizedBox(height: 0)
-        : InkWell(
+        : InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
             onTap: () async {
               final url = '$_updateUrl.apk';
               if (await canLaunchUrl(Uri.parse(url))) {
@@ -331,7 +331,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
               ),
               Obx(() => Offstage(
                     offstage: _idEmpty.value,
-                    child: IconButton(
+                    child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                         onPressed: () {
                           setState(() {
                             _idController.clear();
@@ -342,7 +342,7 @@ class _ConnectionPageState extends State<ConnectionPage> {
               SizedBox(
                 width: 60,
                 height: 60,
-                child: IconButton(
+                child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   icon: const Icon(Icons.arrow_forward,
                       color: MyTheme.darkGray, size: 45),
                   onPressed: onConnect,

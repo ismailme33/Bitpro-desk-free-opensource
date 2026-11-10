@@ -289,7 +289,13 @@ class MyTheme {
       );
 
   // ListTile
+  // Flutter 3.35+ shows the plain arrow over buttons on desktop; this app
+  // uses the hand so it is clear what can be clicked (arrow when disabled).
+  static const WidgetStateMouseCursor clickCursor =
+      WidgetStateMouseCursor.clickable;
+
   static const ListTileThemeData listTileTheme = ListTileThemeData(
+    mouseCursor: clickCursor,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
         Radius.circular(5),
@@ -299,16 +305,19 @@ class MyTheme {
 
   static SwitchThemeData switchTheme() {
     return SwitchThemeData(
+        mouseCursor: clickCursor,
         splashRadius: (isDesktop || isWebDesktop) ? 0 : kRadialReactionRadius);
   }
 
   static RadioThemeData radioTheme() {
     return RadioThemeData(
+        mouseCursor: clickCursor,
         splashRadius: (isDesktop || isWebDesktop) ? 0 : kRadialReactionRadius);
   }
 
   // Checkbox
   static const CheckboxThemeData checkboxTheme = CheckboxThemeData(
+    mouseCursor: clickCursor,
     splashRadius: 0,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
@@ -325,6 +334,7 @@ class MyTheme {
   // like "OK" has a larger left/right padding.
   static TextButtonThemeData mobileTextButtonTheme = TextButtonThemeData(
     style: TextButton.styleFrom(
+      enabledMouseCursor: SystemMouseCursors.click,
       padding: EdgeInsets.symmetric(horizontal: mobileTextButtonPaddingLR),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8.0),
@@ -443,6 +453,7 @@ class MyTheme {
     textButtonTheme: (isDesktop || isWebDesktop)
         ? TextButtonThemeData(
             style: TextButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
               splashFactory: NoSplash.splashFactory,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6.0),
@@ -452,6 +463,7 @@ class MyTheme {
         : mobileTextButtonTheme,
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
+        enabledMouseCursor: SystemMouseCursors.click,
         backgroundColor: MyTheme.accent,
         foregroundColor: Colors.white,
         minimumSize: const Size(88, 38),
@@ -464,6 +476,7 @@ class MyTheme {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        enabledMouseCursor: SystemMouseCursors.click,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         side: const BorderSide(color: Color(0xFFD9D9D9)),
@@ -485,6 +498,7 @@ class MyTheme {
     colorScheme: ColorScheme.light(
         primary: accent, secondary: accent, background: grayBg),
     popupMenuTheme: PopupMenuThemeData(
+        mouseCursor: clickCursor,
         color: Colors.white,
         shape: RoundedRectangleBorder(
           side: BorderSide(
@@ -555,6 +569,7 @@ class MyTheme {
     textButtonTheme: isDesktop
         ? TextButtonThemeData(
             style: TextButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
               splashFactory: NoSplash.splashFactory,
               disabledForegroundColor: Colors.white70,
               foregroundColor: Colors.white70,
@@ -566,6 +581,7 @@ class MyTheme {
         : null,
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
+        enabledMouseCursor: SystemMouseCursors.click,
         backgroundColor: MyTheme.accent,
         foregroundColor: Colors.white,
         disabledForegroundColor: Colors.white70,
@@ -580,6 +596,7 @@ class MyTheme {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        enabledMouseCursor: SystemMouseCursors.click,
         backgroundColor: Color(0xFF24252B),
         side: BorderSide(color: Colors.white12, width: 0.5),
         disabledForegroundColor: Colors.white70,
@@ -605,6 +622,7 @@ class MyTheme {
       background: Color(0xFF24252B),
     ),
     popupMenuTheme: PopupMenuThemeData(
+        mouseCursor: clickCursor,
         shape: RoundedRectangleBorder(
       side: BorderSide(color: Colors.white24),
       borderRadius: BorderRadius.all(Radius.circular(8.0)),
@@ -3105,7 +3123,7 @@ Widget buildErrorBanner(BuildContext context,
                     )).marginSymmetric(vertical: 2),
               ),
               if (retry != null)
-                InkWell(
+                InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                     onTap: () {
                       retry.call();
                     },
@@ -3114,7 +3132,7 @@ Widget buildErrorBanner(BuildContext context,
                       style: TextStyle(color: MyTheme.accent),
                     )).marginSymmetric(horizontal: 5),
               FittedBox(
-                child: InkWell(
+                child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                   onTap: () {
                     close.call();
                   },

@@ -157,7 +157,7 @@ class _PeerTabPageState extends State<PeerTabPage>
             // Read the observable unconditionally: Obx throws if a build
             // reads none (the selected tab would otherwise skip it).
             final isHover = hover.value;
-            return InkWell(
+            return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
                   alignment: Alignment.center,
@@ -774,7 +774,7 @@ class _PeerSearchBarState extends State<PeerSearchBar> {
                       ),
                     ),
                     // Icon(Icons.close),
-                    IconButton(
+                    IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.only(right: 2),
                       onPressed: () {
@@ -1013,7 +1013,7 @@ class RefreshWidgetState extends State<RefreshWidget> {
           padding: EdgeInsets.all(4.0),
           margin: EdgeInsets.symmetric(horizontal: 1),
           decoration: hover ? deco : null,
-          child: InkWell(
+          child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
               onTap: () {
                 if (mounted) setState(() => turns += 1.0);
                 widget.onPressed();
@@ -1050,7 +1050,7 @@ Widget _hoverAction(
           margin: EdgeInsets.symmetric(horizontal: 1),
           decoration:
               (hover.value || hoverableWhenfalse?.value == false) ? deco : null,
-          child: InkWell(
+          child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
               onHover: (value) => hover.value = value,
               onTap: onTap,
               onTapDown: onTapDown,

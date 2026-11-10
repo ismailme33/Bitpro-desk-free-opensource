@@ -301,14 +301,14 @@ class _ViewCameraPageState extends State<ViewCameraPage>
         children: <Widget>[
           Row(
               children: <Widget>[
-                    IconButton(
+                    IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       color: Colors.white,
                       icon: Icon(Icons.clear),
                       onPressed: () {
                         clientClose(sessionId, gFFI.dialogManager);
                       },
                     ),
-                    IconButton(
+                    IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       color: Colors.white,
                       icon: Icon(Icons.tv),
                       onPressed: () {
@@ -323,7 +323,7 @@ class _ViewCameraPageState extends State<ViewCameraPage>
                           futureBuilder(
                               future: gFFI.invokeMethod(
                                   "get_value", "KEY_IS_SUPPORT_VOICE_CALL"),
-                              hasData: (isSupportVoiceCall) => IconButton(
+                              hasData: (isSupportVoiceCall) => IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                                     color: Colors.white,
                                     icon: isAndroid && isSupportVoiceCall
                                         ? SvgPicture.asset('assets/chat.svg',
@@ -337,7 +337,7 @@ class _ViewCameraPageState extends State<ViewCameraPage>
                                   ))
                         ]) +
                   [
-                    IconButton(
+                    IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       color: Colors.white,
                       icon: Icon(Icons.more_vert),
                       onPressed: () {
@@ -346,7 +346,7 @@ class _ViewCameraPageState extends State<ViewCameraPage>
                       },
                     ),
                   ]),
-          Obx(() => IconButton(
+          Obx(() => IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                 color: Colors.white,
                 icon: Icon(Icons.expand_more),
                 onPressed: gFFI.ffiModel.waitForFirstImage.isTrue
@@ -503,7 +503,7 @@ class _ViewCameraPageState extends State<ViewCameraPage>
           trailingIcon: Transform.scale(
             scale: (isDesktop || isWebDesktop) ? 0.8 : 1,
             child: IgnorePointer(
-              child: IconButton(
+              child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                 onPressed: null,
                 icon: icon,
               ),
@@ -586,7 +586,7 @@ void showOptions(
     final cur = pi.currentDisplay;
     final children = <Widget>[];
     for (var i = 0; i < pi.displays.length; ++i) {
-      children.add(InkWell(
+      children.add(InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           onTap: () {
             if (i == cur) return;
             openMonitorInTheSameTab(i, gFFI, pi);

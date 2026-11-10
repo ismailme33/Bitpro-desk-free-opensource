@@ -175,7 +175,7 @@ class _MyGroupState extends State<MyGroup> {
 
   Widget _buildUserItem(UserPayload user) {
     final username = user.name;
-    return InkWell(onTap: () {
+    return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, onTap: () {
       if (selectedUser.value != username) {
         selectedUser.value = username;
       } else {

@@ -524,7 +524,7 @@ Future<bool?> loginDialog() async {
         Text(
           translate('Login'),
         ).marginOnly(top: MyTheme.dialogPadding),
-        InkWell(
+        InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           child: Icon(
             Icons.close,
             size: 25,

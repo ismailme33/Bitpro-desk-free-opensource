@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/bitpro_rating.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -200,9 +201,8 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           settingTabs
               .add(_TabInfo(tab, 'About', Icons.info_outline, Icons.info));
           break;
-      default: // Handle unexpected cases
-        break;
-          
+        default: // Handle unexpected cases
+          break;
       }
     }
     return settingTabs;
@@ -233,8 +233,8 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
         case SettingsTabKey.about:
           children.add(const _About());
           break;
-      default: // Handle unexpected cases
-        break;
+        default: // Handle unexpected cases
+          break;
       }
     }
     return children;
@@ -262,7 +262,7 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
       ]);
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -327,6 +327,7 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
       children: [
         if (isWeb)
           IconButton(
+            mouseCursor: WidgetStateMouseCursor.clickable,
             onPressed: () {
               if (Navigator.canPop(context)) {
                 Navigator.pop(context);
@@ -374,6 +375,7 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           borderRadius: BorderRadius.circular(6),
         ),
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           borderRadius: BorderRadius.circular(6),
           onTap: () {
             if (selectedTab.value != tab.key) {
@@ -657,18 +659,22 @@ class _GeneralState extends State<_General> {
               Text(
                   '${translate(bind.isIncomingOnly() ? "Directory" : "Incoming")}:'),
               Expanded(
-                child: GestureDetector(
-                    onTap: root_dir_exists
-                        ? () => launchUrl(Uri.file(root_dir))
-                        : null,
-                    child: Text(
-                      root_dir,
-                      softWrap: true,
-                      style: root_dir_exists
-                          ? const TextStyle(
-                              decoration: TextDecoration.underline)
-                          : null,
-                    )).marginOnly(left: 10),
+                child: MouseRegion(
+                    cursor: root_dir_exists
+                        ? SystemMouseCursors.click
+                        : MouseCursor.defer,
+                    child: GestureDetector(
+                        onTap: root_dir_exists
+                            ? () => launchUrl(Uri.file(root_dir))
+                            : null,
+                        child: Text(
+                          root_dir,
+                          softWrap: true,
+                          style: root_dir_exists
+                              ? const TextStyle(
+                                  decoration: TextDecoration.underline)
+                              : null,
+                        ))).marginOnly(left: 10),
               ),
             ],
           ).marginOnly(left: _kContentHMargin),
@@ -678,18 +684,22 @@ class _GeneralState extends State<_General> {
               Text(
                   '${translate((showRootDir && !bind.isOutgoingOnly()) ? "Outgoing" : "Directory")}:'),
               Expanded(
-                child: GestureDetector(
-                    onTap: user_dir_exists
-                        ? () => launchUrl(Uri.file(user_dir))
-                        : null,
-                    child: Text(
-                      user_dir,
-                      softWrap: true,
-                      style: user_dir_exists
-                          ? const TextStyle(
-                              decoration: TextDecoration.underline)
-                          : null,
-                    )).marginOnly(left: 10),
+                child: MouseRegion(
+                    cursor: user_dir_exists
+                        ? SystemMouseCursors.click
+                        : MouseCursor.defer,
+                    child: GestureDetector(
+                        onTap: user_dir_exists
+                            ? () => launchUrl(Uri.file(user_dir))
+                            : null,
+                        child: Text(
+                          user_dir,
+                          softWrap: true,
+                          style: user_dir_exists
+                              ? const TextStyle(
+                                  decoration: TextDecoration.underline)
+                              : null,
+                        ))).marginOnly(left: 10),
               ),
               ElevatedButton(
                       onPressed: isOptionFixed(kOptionVideoSaveDirectory)
@@ -820,6 +830,7 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
 
       final tfa = GestureDetector(
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           child: Obx(() => Row(
                 children: [
                   Checkbox(
@@ -863,6 +874,7 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
           waitDuration: Duration(milliseconds: 300),
           message: translate("enable-bot-tip"),
           child: InkWell(
+              mouseCursor: WidgetStateMouseCursor.clickable,
               child: Obx(() => Row(
                     children: [
                       Checkbox(
@@ -1394,6 +1406,7 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
       }(),
     ];
   }
+
   Widget unlockPin() {
     bool enabled = !locked;
     RxString unlockPin = bind.mainGetUnlockPin().obs;
@@ -1923,45 +1936,49 @@ class _AboutState extends State<_About> {
       final buildDate = data['buildDate'].toString();
       final fingerprint = data['fingerprint'].toString();
       final muted = TextStyle(
-          color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6));
+          color:
+              Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6));
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
         child: _Card(title: '${translate('About')} $appName', children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
+                  loadIcon(44),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      loadIcon(44),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(appName,
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600)),
-                          Text('${translate('Version')} $version',
-                              style: muted),
-                        ],
-                      ),
+                      Text(appName,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600)),
+                      Text('${translate('Version')} $version', style: muted),
                     ],
-                  ).marginOnly(top: 8, bottom: 12),
-                  SelectionArea(
-                      child: Text('${translate('Build Date')}: $buildDate')
-                          .marginSymmetric(vertical: 4.0)),
-                  if (!isWeb)
-                    SelectionArea(
-                        child: Text('${translate('Fingerprint')}: $fingerprint')
-                            .marginSymmetric(vertical: 4.0)),
-                  const Divider().marginSymmetric(vertical: 8),
-                  Text(
-                    'Copyright © ${DateTime.now().year} Bitpro. All rights reserved.',
-                    style: muted.copyWith(fontSize: 12),
-                  ).marginOnly(bottom: 8),
+                  ),
                 ],
-              ).marginOnly(left: _kContentHMargin)
-            ]),
+              ).marginOnly(top: 8, bottom: 12),
+              SelectionArea(
+                  child: Text('${translate('Build Date')}: $buildDate')
+                      .marginSymmetric(vertical: 4.0)),
+              if (!isWeb)
+                SelectionArea(
+                    child: Text('${translate('Fingerprint')}: $fingerprint')
+                        .marginSymmetric(vertical: 4.0)),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: buyMeACoffeeButton(),
+              ).marginOnly(top: 4),
+              const Divider().marginSymmetric(vertical: 8),
+              Text(
+                'Copyright © ${DateTime.now().year} Bitpro. All rights reserved.',
+                style: muted.copyWith(fontSize: 12),
+              ).marginOnly(bottom: 8),
+            ],
+          ).marginOnly(left: _kContentHMargin)
+        ]),
       );
     });
   }
@@ -2430,8 +2447,8 @@ void changeSocks5Proxy() async {
         if (domainPort.contains('://')) {
           domainPort = domainPort.split('://')[1];
         }
-        proxyMsg = translate(await bind.mainTestIfValidServer(
-            server: domainPort));
+        proxyMsg =
+            translate(await bind.mainTestIfValidServer(server: domainPort));
         if (proxyMsg.isEmpty) {
           // ignore
         } else {
@@ -2519,6 +2536,7 @@ void changeSocks5Proxy() async {
                         obscureText: obscure.value,
                         decoration: InputDecoration(
                             suffixIcon: IconButton(
+                                mouseCursor: WidgetStateMouseCursor.clickable,
                                 onPressed: () => obscure.value = !obscure.value,
                                 icon: Icon(obscure.value
                                     ? Icons.visibility_off

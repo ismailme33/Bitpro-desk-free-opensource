@@ -380,7 +380,7 @@ class ServerInfo extends StatelessWidget {
                 model.serverId.value.text,
                 style: textStyleValue,
               ),
-              IconButton(
+              IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   visualDensity: VisualDensity.compact,
                   icon: Icon(Icons.copy_outlined),
                   onPressed: () {
@@ -405,11 +405,11 @@ class ServerInfo extends StatelessWidget {
               ),
               showPasswordActions
                   ? Row(children: [
-                      IconButton(
+                      IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                           visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.refresh),
                           onPressed: () => bind.mainUpdateTemporaryPassword()),
-                      IconButton(
+                      IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.copy_outlined),
                           onPressed: () {
@@ -526,7 +526,7 @@ class ConnectionManager extends StatelessWidget {
                           flex: -1,
                           child: client.isFileTransfer || !client.authorized
                               ? const SizedBox.shrink()
-                              : IconButton(
+                              : IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                                   onPressed: () {
                                     gFFI.chatModel.changeCurrentKey(
                                         MessageKey(client.peerId, client.id));

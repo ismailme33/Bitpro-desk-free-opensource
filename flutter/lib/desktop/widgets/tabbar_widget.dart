@@ -1144,7 +1144,7 @@ class _TabState extends State<_Tab> with RestorationMixin {
         widget.index != widget.selected - 1 && widget.index != widget.selected;
     RxBool hover = restoreHover.value.obs;
     return Ink(
-      child: InkWell(
+      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
         onHover: (value) {
           hover.value = value;
           restoreHover.value = value;
@@ -1225,7 +1225,7 @@ class _CloseButton extends StatelessWidget {
             width: _kIconSize,
             child: () {
               if (visible) {
-                return InkWell(
+                return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                   hoverColor: MyTheme.tabbar(context).closeHoverColor,
                   customBorder: const CircleBorder(),
                   onTap: () => onClose(),
@@ -1277,7 +1277,7 @@ class _ActionIconState extends State<ActionIcon> {
     return Tooltip(
       message: widget.message != null ? translate(widget.message!) : "",
       waitDuration: const Duration(seconds: 1),
-      child: InkWell(
+      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
         hoverColor: widget.isClose
             ? const Color.fromARGB(255, 196, 43, 28)
             : MyTheme.tabbar(context).hoverColor,
@@ -1386,13 +1386,13 @@ class _TabDropDownButtonState extends State<_TabDropDownButton> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: InkWell(child: Text(label)),
+                      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, child: Text(label)),
                     ),
                     Obx(
                       () {
                         if (tabInfo?.onTabCloseButton != null &&
                             menuHover.value) {
-                          return InkWell(
+                          return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                               onTap: () {
                                 tabInfo?.onTabCloseButton?.call();
                                 if (Navigator.of(context).canPop()) {

@@ -395,7 +395,7 @@ class _PeerCardState extends State<_PeerCard>
             : Icon(Icons.check_box_outline_blank),
       );
     } else {
-      return InkWell(
+      return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           child: const Padding(
               padding: EdgeInsets.all(12), child: Icon(Icons.more_vert)),
           onTapDown: (e) {
@@ -583,7 +583,7 @@ abstract class BasePeerCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Transform.scale(
                     scale: 0.8,
-                    child: IconButton(
+                    child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                       icon: const Icon(Icons.edit),
                       padding: EdgeInsets.zero,
                       onPressed: () {
@@ -1349,7 +1349,7 @@ void _rdpDialog(String id) async {
                         obscureText: secure.value,
                         decoration: InputDecoration(
                             labelText: isDesktop ? null : translate('Password'),
-                            suffixIcon: IconButton(
+                            suffixIcon: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                                 onPressed: () => secure.value = !secure.value,
                                 icon: Icon(secure.value
                                     ? Icons.visibility_off
@@ -1384,7 +1384,7 @@ Widget getOnline(double rightPadding, bool online) {
 
 Widget build_more(BuildContext context, {bool invert = false}) {
   final RxBool hover = false.obs;
-  return InkWell(
+  return InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
       borderRadius: BorderRadius.circular(14),
       onTap: () {},
       onHover: (value) => hover.value = value,

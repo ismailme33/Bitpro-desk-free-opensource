@@ -238,7 +238,7 @@ class MenuEntryRadios<T> extends MenuEntryBase<T> {
                   child: Transform.scale(
                     scale: MenuConfig.iconScale,
                     child: Obx(() => opt.value == curOption.value
-                        ? IconButton(
+                        ? IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             padding:
                                 const EdgeInsets.fromLTRB(8.0, 0.0, 8.0, 0.0),
                             hoverColor: Colors.transparent,
@@ -355,7 +355,7 @@ class MenuEntrySubRadios<T> extends MenuEntryBase<T> {
                     child: Transform.scale(
                         scale: MenuConfig.iconScale,
                         child: Obx(() => opt.value == curOption.value
-                            ? IconButton(
+                            ? IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                                 padding: EdgeInsets.zero,
                                 hoverColor: Colors.transparent,
                                 focusColor: Colors.transparent,

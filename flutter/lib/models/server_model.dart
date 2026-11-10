@@ -653,7 +653,7 @@ Future<void> stopService() async {
         title:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(translate(title)),
-          IconButton(onPressed: close, icon: const Icon(Icons.close))
+          IconButton(mouseCursor: WidgetStateMouseCursor.clickable, onPressed: close, icon: const Icon(Icons.close))
         ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,

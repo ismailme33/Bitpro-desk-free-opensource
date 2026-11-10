@@ -262,7 +262,7 @@ class _PortForwardPageState extends State<PortForwardPage>
         text(pf.remotePort.toString()),
         SizedBox(
           width: _kColumn4Width,
-          child: IconButton(
+          child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
             icon: const Icon(Icons.close),
             onPressed: () async {
               await bind.sessionRemovePortForward(

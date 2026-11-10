@@ -43,7 +43,7 @@ class _MenuButtonState extends State<MenuButton> {
               borderRadius: BorderRadius.circular(_borderRadius),
               color: _isHover ? widget.hoverColor : widget.color,
             ),
-            child: InkWell(
+            child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
               hoverColor: widget.hoverColor,
               onHover: (val) {
                 setState(() {

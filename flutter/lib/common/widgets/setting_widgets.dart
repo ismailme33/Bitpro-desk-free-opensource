@@ -203,12 +203,12 @@ List<Widget> ServerConfigImportExportWidgets(
   return [
     Tooltip(
       message: translate('Import server config'),
-      child: IconButton(
+      child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
           icon: Icon(Icons.paste, color: Colors.grey), onPressed: import),
     ),
     Tooltip(
         message: translate('Export Server Config'),
-        child: IconButton(
+        child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
             icon: Icon(Icons.copy, color: Colors.grey), onPressed: export))
   ];
 }

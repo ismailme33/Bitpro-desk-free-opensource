@@ -833,7 +833,7 @@ class _FileManagerViewState extends State<FileManagerView> {
                       ),
                       onPressed: () =>
                           {webselectFiles(is_folder: isUploadFolder.value)},
-                      label: InkWell(
+                      label: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                         hoverColor: Colors.transparent,
                         splashColor: Colors.transparent,
                         highlightColor: Colors.transparent,
@@ -1155,7 +1155,7 @@ class _FileManagerViewState extends State<FileManagerView> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     Expanded(
-                      child: InkWell(
+                      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                         child: Row(
                           children: [
                             GestureDetector(
@@ -1413,7 +1413,7 @@ class _FileManagerViewState extends State<FileManagerView> {
     final headerTextStyle =
         Theme.of(context).dataTableTheme.headingTextStyle ?? TextStyle();
     return ObxValue<Rx<bool?>>(
-        (ascending) => InkWell(
+        (ascending) => InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
               onTap: () {
                 if (ascending.value == null) {
                   ascending.value = true;

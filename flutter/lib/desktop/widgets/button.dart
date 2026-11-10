@@ -38,7 +38,7 @@ class _ButtonState extends State<Button> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => InkWell(
+    return Obx(() => InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           onTapDown: (_) => pressed.value = true,
           onTapUp: (_) => pressed.value = false,
           onTapCancel: () => pressed.value = false,
@@ -123,7 +123,7 @@ class _FixedWidthButtonState extends State<FixedWidthButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => InkWell(
+    return Obx(() => InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           onTapDown: (_) => pressed.value = true,
           onTapUp: (_) => pressed.value = false,
           onTapCancel: () => pressed.value = false,

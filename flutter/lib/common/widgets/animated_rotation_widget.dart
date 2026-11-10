@@ -19,7 +19,7 @@ class AnimatedRotationWidgetState extends State<AnimatedRotationWidget> {
     return AnimatedRotation(
         turns: turns,
         duration: const Duration(milliseconds: 200),
-        child: InkWell(
+        child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
             onTap: () {
               setState(() => turns += 1.0);
               widget.onPressed();

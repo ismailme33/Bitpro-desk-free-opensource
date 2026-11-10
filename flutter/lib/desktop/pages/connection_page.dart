@@ -14,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
 
 import '../../common.dart';
+import '../../common/bitpro_rating.dart';
 import '../../common/bitpro_update.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../common/widgets/peer_tab_page.dart';
@@ -116,7 +117,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
               Text('  ·  $detail',
                   style: TextStyle(fontSize: 12.5, color: muted)),
             if (stopped)
-              InkWell(
+              InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                 onTap: () async => await start_service(true),
                 child: Text('  ·  ${translate("Start service")}',
                     style: TextStyle(
@@ -136,7 +137,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     final isIncomingOnly = bind.isIncomingOnly();
     startServiceWidget() => Offstage(
           offstage: !_svcStopped.value,
-          child: InkWell(
+          child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                   onTap: () async {
                     await start_service(true);
                   },
@@ -156,7 +157,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
               children: [
                 Text(', ', style: TextStyle(fontSize: em)),
                 Flexible(
-                  child: InkWell(
+                  child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
                     onTap: onUsePublicServerGuide,
                     child: Row(
                       children: [
@@ -353,26 +354,42 @@ class _ConnectionPageState extends State<ConnectionPage>
           children: [
             // Shown only when a newer Bitpro Desk is published.
             const BitproUpdateBanner(),
+            // Occasional thank-you after a successful session.
+            const BitproCoffeeBar(),
             // Network status, shown at the top.
             if (!isOutgoingOnly)
               Align(
                 alignment: Alignment.centerLeft,
                 child: OnlineStatusWidget(pill: true),
               ).marginOnly(top: 18),
-            // Support card sits next to the connect card when there is room.
+            // Support card sits next to the connect card when there is room,
+            // otherwise a slim version of it goes below.
             LayoutBuilder(
-              builder: (context, constraints) => IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 890) {
+                  return IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Flexible(child: _buildRemoteIDTextField(context)),
+                        const SizedBox(width: 16),
+                        const SizedBox(width: 340, child: _SupportCard()),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(child: _buildRemoteIDTextField(context)),
-                    if (constraints.maxWidth >= 890) ...[
-                      const SizedBox(width: 16),
-                      const SizedBox(width: 340, child: _SupportCard()),
-                    ],
+                    _buildRemoteIDTextField(context),
+                    const SizedBox(height: 12),
+                    // Same width as the connect card.
+                    const SizedBox(
+                        width: 460 + 20 * 2,
+                        child: _SupportCard(compact: true)),
                   ],
-                ),
-              ),
+                );
+              },
             ).marginOnly(top: isOutgoingOnly ? 22 : 12),
             SizedBox(height: 12),
             Divider().paddingOnly(right: 12),
@@ -617,11 +634,85 @@ class _ConnectionPageState extends State<ConnectionPage>
 
 /// "Free project" card shown next to the connect card.
 class _SupportCard extends StatelessWidget {
-  const _SupportCard({Key? key}) : super(key: key);
+  /// Slim one-row layout used below the connect card on narrow windows.
+  final bool compact;
+  const _SupportCard({Key? key, this.compact = false}) : super(key: key);
 
-  static const _phone = '+966570624971';
-  static const _phoneDisplay = '+966 57 062 4971';
-  static const _supportUrl = 'https://wa.me/966570624971';
+  static const _email = 'bitproglobal3@gmail.com';
+
+  static String get _headline => '${translate('Enjoying')} $appName?';
+  static const _pitch = 'A coffee keeps it free, updated and ad-free.';
+
+  static final _contactStyle = TextStyle(
+    color: Colors.white.withOpacity(0.9),
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// Small white icon + text link.
+  Widget _contact(IconData icon, String text, String tooltip,
+      VoidCallback onTap) {
+    return Tooltip(
+      message: translate(tooltip),
+      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white.withOpacity(0.85), size: 13),
+            const SizedBox(width: 5),
+            Text(text, style: _contactStyle),
+          ],
+        ).paddingSymmetric(vertical: 3, horizontal: 2),
+      ),
+    );
+  }
+
+  /// Email is copied (not every PC has a mail app set up for mailto: links).
+  Widget _emailLink() => _contact(Icons.mail_rounded, _email, 'Click to copy',
+      () {
+        Clipboard.setData(const ClipboardData(text: _email));
+        showToast(translate('Copied'));
+      });
+
+  Widget _coffee({double height = 44}) =>
+      BuyMeACoffeeButton(height: height, pulse: true);
+
+  Widget _compactBody() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _headline,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                translate(_pitch),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              _emailLink(),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        _coffee(height: 40),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -630,8 +721,10 @@ class _SupportCard extends StatelessWidget {
       child: CustomPaint(
         painter: _SupportCardTexture(),
         child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
+          padding: compact
+              ? const EdgeInsets.fromLTRB(18, 12, 16, 12)
+              : const EdgeInsets.all(20),
+          child: compact ? _compactBody() : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Eyebrow label.
@@ -662,7 +755,7 @@ class _SupportCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '$appName is free',
+                _headline,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -672,47 +765,18 @@ class _SupportCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Developed by Ismail Ibrahim',
+                translate(_pitch),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 12.5,
                   height: 1.3,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
+              _emailLink(),
+              const SizedBox(height: 10),
               const Spacer(),
-              // Footer: support button and phone number.
-              Row(
-                children: [
-                  // Opens a WhatsApp chat with the developer.
-                  _CoffeeButton(onTap: () => launchUrlString(_supportUrl)),
-                  const Spacer(),
-                  // Click to copy the phone number.
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(const ClipboardData(text: _phone));
-                      showToast(translate('Copied'));
-                    },
-                    borderRadius: BorderRadius.circular(6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.phone_rounded,
-                            color: Colors.white.withOpacity(0.85), size: 13),
-                        const SizedBox(width: 5),
-                        Text(
-                          _phoneDisplay,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ).paddingSymmetric(vertical: 4),
-                  ),
-                ],
-              ),
+              _coffee(),
             ],
           ),
         ),
@@ -751,92 +815,3 @@ class _SupportCardTexture extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// "Buy me a coffee" button in the classic coffee yellow, with a gentle
-/// heartbeat pulse, warm glow and cup wiggle so it gets noticed.
-class _CoffeeButton extends StatefulWidget {
-  final VoidCallback onTap;
-  const _CoffeeButton({Key? key, required this.onTap}) : super(key: key);
-
-  @override
-  State<_CoffeeButton> createState() => _CoffeeButtonState();
-}
-
-class _CoffeeButtonState extends State<_CoffeeButton>
-    with SingleTickerProviderStateMixin {
-  static const _yellow = Color(0xFFFFDD00);
-  static const _brown = Color(0xFF3B2416);
-
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2400),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  // Two quick beats, then rest: 0..1 over the cycle.
-  double _beat(double t) {
-    double bump(double c) {
-      final d = (t - c).abs() / 0.08;
-      return d >= 1 ? 0 : (1 - d * d);
-    }
-
-    return (bump(0.10) + 0.7 * bump(0.28)).clamp(0.0, 1.0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        final b = _beat(_ctrl.value);
-        // Cup wiggles during the beat.
-        final wiggle = b * 0.25 * (_ctrl.value < 0.2 ? 1 : -1);
-        return Transform.scale(
-          scale: 1 + 0.05 * b,
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: _yellow,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: _yellow.withOpacity(0.35 + 0.4 * b),
-                    blurRadius: 8 + 14 * b,
-                    spreadRadius: 1 * b,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Transform.rotate(
-                    angle: wiggle,
-                    child: const Icon(Icons.local_cafe_rounded,
-                        color: _brown, size: 16),
-                  ),
-                  const SizedBox(width: 7),
-                  const Text(
-                    'Buy me a coffee',
-                    style: TextStyle(
-                      color: _brown,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}

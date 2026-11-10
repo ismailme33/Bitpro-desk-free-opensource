@@ -10,7 +10,7 @@ class WebSettingsPage extends StatelessWidget {
   }
 
   Widget _buildDesktopButton(BuildContext context) {
-    return IconButton(
+    return IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
       icon: const Icon(Icons.more_vert),
       onPressed: () {
         Navigator.push(

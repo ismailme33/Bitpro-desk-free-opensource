@@ -368,7 +368,7 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    return IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
       onPressed: () {
         windowManager.close();
       },
@@ -521,7 +521,7 @@ class _CmHeaderState extends State<_CmHeader>
             offstage: !client.authorized ||
                 (client.type_() != ClientType.remote &&
                     client.type_() != ClientType.file),
-            child: IconButton(
+            child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
               onPressed: () => checkClickTime(client.id, () {
                 if (client.type_() == ClientType.file) {
                   gFFI.chatModel.toggleCMFilePage();
@@ -567,7 +567,7 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
           borderRadius: BorderRadius.circular(8.0),
         ),
         padding: EdgeInsets.all(8.0),
-        child: InkWell(
+        child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
           onTap: () =>
               checkClickTime(widget.client.id, () => onTap?.call(!enabled)),
           child: Column(
@@ -1039,7 +1039,7 @@ class _CmControlPanel extends StatelessWidget {
       height: 36,
       decoration: BoxDecoration(
           color: color, borderRadius: borderRadius, border: border),
-      child: InkWell(
+      child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
         borderRadius: borderRadius,
         onTap: () {
           if (onClick == null) return;

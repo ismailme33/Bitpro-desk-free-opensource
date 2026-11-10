@@ -92,7 +92,7 @@ class DraggableChatWindow extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconButton(
+              IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   onPressed: () {
                     chatModel.hideChatWindowOverlay();
                   },
@@ -100,7 +100,7 @@ class DraggableChatWindow extends StatelessWidget {
                     Icons.keyboard_arrow_down,
                     color: Colors.white,
                   )),
-              IconButton(
+              IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                   onPressed: () {
                     chatModel.hideChatWindowOverlay();
                     chatModel.hideChatIconOverlay();
@@ -209,19 +209,19 @@ class DraggableMobileActions extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        IconButton(
+                        IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             color: Colors.white,
                             onPressed: onBackPressed,
                             splashRadius: kDesktopIconButtonSplashRadius,
                             icon: const Icon(Icons.arrow_back),
                             iconSize: 24 * scale),
-                        IconButton(
+                        IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             color: Colors.white,
                             onPressed: onHomePressed,
                             splashRadius: kDesktopIconButtonSplashRadius,
                             icon: const Icon(Icons.home),
                             iconSize: 24 * scale),
-                        IconButton(
+                        IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             color: Colors.white,
                             onPressed: onRecentPressed,
                             splashRadius: kDesktopIconButtonSplashRadius,
@@ -233,7 +233,7 @@ class DraggableMobileActions extends StatelessWidget {
                           indent: 10,
                           endIndent: 10,
                         ),
-                        IconButton(
+                        IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
                             color: Colors.white,
                             onPressed: onHidePressed,
                             splashRadius: kDesktopIconButtonSplashRadius,
