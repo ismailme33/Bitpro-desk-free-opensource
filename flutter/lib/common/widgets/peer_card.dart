@@ -100,6 +100,8 @@ class _PeerCardState extends State<_PeerCard>
       ),
     );
     return MouseRegion(
+      // Hand cursor: the card can be clicked / double-clicked to connect.
+      cursor: SystemMouseCursors.click,
       onEnter: (evt) {
         deco.value = BoxDecoration(
           border: Border.all(

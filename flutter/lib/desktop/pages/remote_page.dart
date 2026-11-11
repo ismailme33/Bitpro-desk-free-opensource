@@ -114,6 +114,8 @@ class _RemotePageState extends State<RemotePage>
     super.initState();
     _ffi = FFI(widget.sessionId);
     Get.put<FFI>(_ffi, tag: widget.id);
+    // Remote desktop windows have the taller tab row with the session tools.
+    stateGlobal.remoteTabBarHeight = kDesktopRemoteToolsTabBarHeight;
     _ffi.imageModel.addCallbackOnFirstImage((String peerId) {
       _connectedAt ??= DateTime.now();
       showKBLayoutTypeChooserIfNeeded(
@@ -253,7 +255,7 @@ class _RemotePageState extends State<RemotePage>
         DateTime.now().difference(connectedAt) >= kBitproGoodSessionLength) {
       rustDeskWinManager
           .call(WindowType.Main, kWindowEventBitproSessionDone, '')
-          .catchError((_) => null);
+          .then((_) {}, onError: (_) {});
     }
 
     // https://github.com/flutter/flutter/issues/64935
@@ -293,10 +295,11 @@ class _RemotePageState extends State<RemotePage>
       );
 
   Widget buildBody(BuildContext context) {
-    remoteToolbar(BuildContext context) => RemoteToolbar(
+    remoteToolbar(BuildContext context, {bool docked = false}) => RemoteToolbar(
           id: widget.id,
           ffi: _ffi,
           state: widget.toolbarState,
+          docked: docked,
           onEnterOrLeaveImageSetter: (id, func) {
             _instanceIdOnEnterOrLeaveImage4Toolbar = id;
             _onEnterOrLeaveImage4Toolbar = func;
@@ -312,7 +315,16 @@ class _RemotePageState extends State<RemotePage>
           setRemoteState: setState,
         );
 
-    bodyWidget() {
+    // In a window the tools sit in the tab row (see RemoteTabTools); in full
+    // screen the classic floating toolbar is used.
+    floatingToolbar() => Obx(() => stateGlobal.fullscreen.isFalse
+        ? const Offstage()
+        // Use Overlay to enable rebuild every time on menu button click.
+        : _ffi.ffiModel.pi.isSet.isTrue
+            ? Overlay(initialEntries: [OverlayEntry(builder: remoteToolbar)])
+            : remoteToolbar(context));
+
+    screenAndOverlays() {
       return Stack(
         children: [
           Container(
@@ -361,17 +373,16 @@ class _RemotePageState extends State<RemotePage>
                             ));
                       }
                     }(),
-              // Use Overlay to enable rebuild every time on menu button click.
-              _ffi.ffiModel.pi.isSet.isTrue
-                  ? Overlay(
-                      initialEntries: [OverlayEntry(builder: remoteToolbar)])
-                  : remoteToolbar(context),
+              floatingToolbar(),
               _ffi.ffiModel.pi.isSet.isFalse ? emptyOverlay() : Offstage(),
             ],
           ),
         ],
       );
     }
+
+    bodyWidget() => screenAndOverlays();
+
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -596,7 +607,7 @@ class _ImagePaintState extends State<ImagePaint> {
     var c = Provider.of<CanvasModel>(context);
     final s = c.scale;
 
-    bool isViewAdaptive() => c.viewStyle.style == kRemoteViewStyleAdaptive;
+    bool isViewAdaptive() => c.viewStyle.style != kRemoteViewStyleOriginal;
     bool isViewOriginal() => c.viewStyle.style == kRemoteViewStyleOriginal;
 
     mouseRegion({child}) => Obx(() {

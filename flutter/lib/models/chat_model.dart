@@ -217,8 +217,8 @@ class ChatModel with ChangeNotifier {
           },
           child: DraggableChatWindow(
               position: chatInitPos ?? chatWindowPosition,
-              width: 250,
-              height: 350,
+              width: (isDesktop || isWebDesktop) ? 320 : 250,
+              height: (isDesktop || isWebDesktop) ? 420 : 350,
               chatModel: this));
     });
     overlayState.insert(overlay);

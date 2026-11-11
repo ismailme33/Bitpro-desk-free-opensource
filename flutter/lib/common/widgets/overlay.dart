@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 
 import '../../consts.dart';
-import '../../desktop/widgets/tabbar_widget.dart';
+import '../formatter/id_formatter.dart';
 import '../../models/chat_model.dart';
 import '../../models/model.dart';
 import 'chat_page.dart';
@@ -65,10 +65,28 @@ class DraggableChatWindow extends StatelessWidget {
                 ),
                 body: ChatPage(chatModel: chatModel),
               );
+              if (!(isDesktop || isWebDesktop)) {
+                return Container(
+                    decoration: BoxDecoration(
+                        border: Border.all(color: MyTheme.border)),
+                    child: child);
+              }
+              // Desktop: floating card with rounded corners and a shadow.
+              const radius = BorderRadius.all(Radius.circular(12));
               return Container(
-                  decoration:
-                      BoxDecoration(border: Border.all(color: MyTheme.border)),
-                  child: child);
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: Border.all(color: MyTheme.panelBorder(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(borderRadius: radius, child: child),
+              );
             });
   }
 
@@ -116,36 +134,107 @@ class DraggableChatWindow extends StatelessWidget {
     );
   }
 
+  /// Title bar of the floating chat (desktop): drag handle, who you are
+  /// chatting with, close.
   Widget _buildDesktopAppBar(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
+    final textColor =
+        Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+    final peerId = chatModel.currentKey.peerId;
+    return MouseRegion(
+      cursor: SystemMouseCursors.move,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.only(left: 12, right: 6),
+        decoration: BoxDecoration(
+          color: MyTheme.panel(context),
           border: Border(
-              bottom: BorderSide(
-                  color: Theme.of(context).hintColor.withOpacity(0.4)))),
-      height: 38,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              bottom: BorderSide(color: MyTheme.panelBorder(context))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
               child: Obx(() => Opacity(
-                  opacity: chatModel.isWindowFocus.value ? 1.0 : 0.4,
-                  child: Row(children: [
-                    Icon(Icons.chat_bubble_outline,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    SizedBox(width: 6),
-                    Text(translate("Chat"))
-                  ])))),
-          Padding(
-              padding: EdgeInsets.all(2),
-              child: ActionIcon(
-                message: 'Close',
-                icon: IconFont.close,
-                onTap: chatModel.hideChatWindowOverlay,
-                isClose: true,
-                boxSize: 32,
-              ))
-        ],
+                    opacity: chatModel.isWindowFocus.value ? 1.0 : 0.55,
+                    child: Row(children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: MyTheme.accent.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.chat_bubble_outline_rounded,
+                            size: 14, color: MyTheme.accent),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        translate("Chat"),
+                        style: TextStyle(
+                            color: textColor,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      if (peerId.isNotEmpty)
+                        Flexible(
+                          child: Text(
+                            '  ·  ${formatID(peerId)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: textColor.withOpacity(0.55),
+                                fontSize: 12.5),
+                          ),
+                        ),
+                    ]),
+                  )),
+            ),
+            _ChatCloseButton(onTap: chatModel.hideChatWindowOverlay),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Subtle close button for the floating chat (highlights on hover).
+class _ChatCloseButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _ChatCloseButton({Key? key, required this.onTap}) : super(key: key);
+
+  @override
+  State<_ChatCloseButton> createState() => _ChatCloseButtonState();
+}
+
+class _ChatCloseButtonState extends State<_ChatCloseButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor =
+        Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+    return Tooltip(
+      message: translate('Close'),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: _hover
+                  ? textColor.withOpacity(0.08)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.close_rounded,
+                size: 17,
+                color: textColor.withOpacity(_hover ? 0.9 : 0.6)),
+          ),
+        ),
       ),
     );
   }
@@ -436,6 +525,16 @@ class _DraggableState extends State<Draggable> {
     }
     if (widget.checkScreenSize) {
       checkScreenSize();
+    }
+    // Keep the window fully visible (it opens next to its toolbar button,
+    // which can be at the right edge of the window).
+    final size = MediaQuery.of(context).size;
+    final maxX = size.width - widget.width;
+    final maxY = size.height - widget.height;
+    if (maxX >= 0 && maxY >= 0) {
+      final p = position as Offset;
+      final clamped = Offset(p.dx.clamp(0.0, maxX), p.dy.clamp(0.0, maxY));
+      if (clamped != p) widget.position.update(clamped);
     }
     return Stack(children: [
       Positioned(

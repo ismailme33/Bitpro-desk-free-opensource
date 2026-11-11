@@ -15,6 +15,7 @@ import 'package:flutter_hbb/models/peer_model.dart';
 
 import '../../common.dart';
 import '../../common/bitpro_rating.dart';
+import '../../common/connecting_hint.dart';
 import '../../common/bitpro_update.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../common/widgets/peer_tab_page.dart';
@@ -265,12 +266,19 @@ class ConnectionPage extends StatefulWidget {
 }
 
 /// State for the connection page.
+/// Height of the ID field and the Connect button next to it.
+const double _kIdFieldHeight = 50;
+
+/// Shared height of the connect card and the support card side by side.
+const double _kConnectRowHeight = 186;
+
 class _ConnectionPageState extends State<ConnectionPage>
     with SingleTickerProviderStateMixin, WindowListener {
   /// Controller for the id input bar.
   final _idController = IDTextEditingController();
 
   final RxBool _idInputFocused = false.obs;
+  FocusNode? _idFocusNode;
 
   bool isWindowMinimized = false;
   List<Peer> peers = [];
@@ -324,6 +332,10 @@ class _ConnectionPageState extends State<ConnectionPage>
     }
   }
 
+  // The session window took focus: the "Connecting to" hint is done.
+  @override
+  void onWindowBlur() => hideConnectingHint();
+
   @override
   void onWindowEnterFullScreen() {
     // Remove edge border by setting the value to zero.
@@ -363,34 +375,34 @@ class _ConnectionPageState extends State<ConnectionPage>
                 child: OnlineStatusWidget(pill: true),
               ).marginOnly(top: 18),
             // Support card sits next to the connect card when there is room,
-            // otherwise a slim version of it goes below.
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth >= 890) {
-                  return IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Flexible(child: _buildRemoteIDTextField(context)),
-                        const SizedBox(width: 16),
-                        const SizedBox(width: 340, child: _SupportCard()),
-                      ],
-                    ),
-                  );
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildRemoteIDTextField(context),
-                    const SizedBox(height: 12),
-                    // Same width as the connect card.
-                    const SizedBox(
-                        width: 460 + 20 * 2,
-                        child: _SupportCard(compact: true)),
-                  ],
-                );
-              },
-            ).marginOnly(top: isOutgoingOnly ? 22 : 12),
+            // otherwise a slim version of it goes below. Decided from the
+            // window width, not a LayoutBuilder: the ID autocomplete field
+            // must not be built during layout (debug assertions).
+            (_hasRoomBesideConnectCard(context)
+                    ? SizedBox(
+                        // Both cards share this height (see _kConnectRowHeight).
+                        height: _kConnectRowHeight,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Flexible(child: _buildRemoteIDTextField(context)),
+                            const SizedBox(width: 16),
+                            const SizedBox(width: 340, child: _SupportCard()),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildRemoteIDTextField(context),
+                          const SizedBox(height: 12),
+                          // Same width as the connect card.
+                          const SizedBox(
+                              width: 460 + 20 * 2,
+                              child: _SupportCard(compact: true)),
+                        ],
+                      ))
+                .marginOnly(top: isOutgoingOnly ? 22 : 12),
             SizedBox(height: 12),
             Divider().paddingOnly(right: 12),
             Expanded(child: PeerTabPage()),
@@ -419,6 +431,15 @@ class _ConnectionPageState extends State<ConnectionPage>
     });
   }
 
+  /// True when the support card fits next to the connect card (500 + 16 +
+  /// 340 px). The home screen's left pane (248), its divider (1) and this
+  /// page's left padding (12) take the rest of the window width.
+  bool _hasRoomBesideConnectCard(BuildContext context) {
+    const leftPaneAndPadding = 248.0 + 1 + 12 + 12;
+    final available = MediaQuery.sizeOf(context).width - leftPaneAndPadding;
+    return available >= 890;
+  }
+
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
@@ -431,6 +452,8 @@ class _ConnectionPageState extends State<ConnectionPage>
           border: Border.all(color: MyTheme.panelBorder(context))),
       child: Ink(
         child: Column(
+          // Centered when the card is stretched to the support card height.
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             getConnectionPageTitle(context, false).marginOnly(bottom: 6),
@@ -444,9 +467,11 @@ class _ConnectionPageState extends State<ConnectionPage>
                       ?.color
                       ?.withOpacity(0.55)),
             ).marginOnly(bottom: 14),
-            // IntrinsicHeight + stretch: the Connect button takes exactly the
-            // height of the ID field.
-            IntrinsicHeight(
+            // Fixed height + stretch: the Connect button is exactly as tall as
+            // the ID field. (No IntrinsicHeight: the autocomplete field and
+            // the auto-size title can't report intrinsic sizes.)
+            SizedBox(
+                height: _kIdFieldHeight,
                 child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -501,19 +526,33 @@ class _ConnectionPageState extends State<ConnectionPage>
                     FocusNode fieldFocusNode,
                     VoidCallback onFieldSubmitted,
                   ) {
-                    fieldTextEditingController.text = _idController.text;
+                    // This builder runs during layout (inside a LayoutBuilder),
+                    // so the field must not be changed here directly: sync the
+                    // ID after the frame, and only when it actually differs.
+                    // Select all to make replacing the ID easy (like Chrome's
+                    // address bar).
+                    final text = _idController.text;
+                    if (fieldTextEditingController.text != text) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (fieldTextEditingController.text == text) return;
+                        fieldTextEditingController.value = TextEditingValue(
+                          text: text,
+                          selection: TextSelection(
+                              baseOffset: 0, extentOffset: text.length),
+                        );
+                      });
+                    }
                     Get.put<TextEditingController>(fieldTextEditingController);
-                    fieldFocusNode.addListener(() async {
-                      _idInputFocused.value = fieldFocusNode.hasFocus;
-                      if (fieldFocusNode.hasFocus && !isPeersLoading) {
-                        _fetchPeers();
-                      }
-                    });
-                    final textLength =
-                        fieldTextEditingController.value.text.length;
-                    // select all to facilitate removing text, just following the behavior of address input of chrome
-                    fieldTextEditingController.selection =
-                        TextSelection(baseOffset: 0, extentOffset: textLength);
+                    // Listen once per focus node (builds can repeat).
+                    if (!identical(_idFocusNode, fieldFocusNode)) {
+                      _idFocusNode = fieldFocusNode;
+                      fieldFocusNode.addListener(() async {
+                        _idInputFocused.value = fieldFocusNode.hasFocus;
+                        if (fieldFocusNode.hasFocus && !isPeersLoading) {
+                          _fetchPeers();
+                        }
+                      });
+                    }
                     return Obx(() => TextField(
                           autocorrect: false,
                           enableSuggestions: false,
@@ -774,7 +813,6 @@ class _SupportCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               _emailLink(),
-              const SizedBox(height: 10),
               const Spacer(),
               _coffee(),
             ],

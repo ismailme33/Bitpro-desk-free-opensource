@@ -306,17 +306,25 @@ Future<List<TRadioMenu<String>>> toolbarViewStyle(
         .then((_) => ffi.canvasModel.updateViewStyle());
   }
 
+  // "adaptive" (older setting) is shown and used as Shrink.
+  final current =
+      groupValue == kRemoteViewStyleAdaptive ? kRemoteViewStyleShrink : groupValue;
   return [
     TRadioMenu<String>(
-        child: Text(translate('Scale original')),
+        child: Text(translate('Original')),
         value: kRemoteViewStyleOriginal,
-        groupValue: groupValue,
+        groupValue: current,
         onChanged: onChanged),
     TRadioMenu<String>(
-        child: Text(translate('Scale adaptive')),
-        value: kRemoteViewStyleAdaptive,
-        groupValue: groupValue,
-        onChanged: onChanged)
+        child: Text(translate('Shrink')),
+        value: kRemoteViewStyleShrink,
+        groupValue: current,
+        onChanged: onChanged),
+    TRadioMenu<String>(
+        child: Text(translate('Stretch')),
+        value: kRemoteViewStyleStretch,
+        groupValue: current,
+        onChanged: onChanged),
   ];
 }
 

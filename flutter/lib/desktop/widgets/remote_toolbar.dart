@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
+import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/common/widgets/toolbar.dart';
 import 'package:flutter_hbb/models/chat_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -328,6 +329,10 @@ class RemoteToolbar extends StatefulWidget {
   final Function(int) onEnterOrLeaveImageCleaner;
   final Function(VoidCallback) setRemoteState;
 
+  /// AnyDesk-style bar docked under the tabs (windowed mode). When false,
+  /// the classic floating toolbar is used (full screen).
+  final bool docked;
+
   RemoteToolbar({
     Key? key,
     required this.id,
@@ -336,6 +341,7 @@ class RemoteToolbar extends StatefulWidget {
     required this.onEnterOrLeaveImageSetter,
     required this.onEnterOrLeaveImageCleaner,
     required this.setRemoteState,
+    this.docked = false,
   }) : super(key: key);
 
   @override
@@ -385,6 +391,8 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       initialValue: 0,
     );
 
+    // Auto-hide applies to the floating toolbar only.
+    if (widget.docked) return;
     widget.onEnterOrLeaveImageSetter(identityHashCode(this), (enter) {
       if (enter) {
         triggerAutoHide();
@@ -405,11 +413,12 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
   dispose() {
     super.dispose();
 
-    widget.onEnterOrLeaveImageCleaner(identityHashCode(this));
+    if (!widget.docked) widget.onEnterOrLeaveImageCleaner(identityHashCode(this));
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.docked) return _buildDockedBar(context);
     return Align(
       alignment: Alignment.topCenter,
       child: Obx(() => show.value
@@ -417,6 +426,73 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
           : _buildDraggableShowHide(context)),
     );
   }
+
+  /// The toolbar buttons, shared by the docked bar and the floating toolbar.
+  List<Widget> _toolbarItems({required bool withPin}) {
+    final List<Widget> toolbarItems = [];
+    if (withPin) toolbarItems.add(_PinMenu(state: widget.state));
+    if (!isWebDesktop) {
+      toolbarItems.add(_MobileActionMenu(ffi: widget.ffi));
+    }
+
+    toolbarItems.add(Obx(() {
+      if (PrivacyModeState.find(widget.id).isEmpty &&
+          pi.displaysCount.value > 1) {
+        return _MonitorMenu(
+            id: widget.id,
+            ffi: widget.ffi,
+            setRemoteState: widget.setRemoteState);
+      } else {
+        return Offstage();
+      }
+    }));
+
+    toolbarItems
+        .add(_ControlMenu(id: widget.id, ffi: widget.ffi, state: widget.state));
+    toolbarItems.add(_DisplayMenu(
+      id: widget.id,
+      ffi: widget.ffi,
+      state: widget.state,
+      setFullscreen: _setFullscreen,
+    ));
+    // Do not show keyboard for camera connection type.
+    if (widget.ffi.connType == ConnType.defaultConn) {
+      toolbarItems.add(_KeyboardMenu(id: widget.id, ffi: widget.ffi));
+    }
+    toolbarItems.add(_ChatMenu(id: widget.id, ffi: widget.ffi));
+    if (!isWeb) {
+      toolbarItems.add(_VoiceCallMenu(id: widget.id, ffi: widget.ffi));
+    }
+    if (!isWeb) toolbarItems.add(_RecordMenu());
+    return toolbarItems;
+  }
+
+  /// AnyDesk-style tools for the tab row of the remote window (one bar:
+  /// tabs, tools, window buttons). Flat icons; menus open below.
+  Widget _buildDockedBar(BuildContext context) {
+    return _DockedScope(
+      child: Theme(
+        data: themeData(docked: true),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ..._toolbarItems(withPin: false),
+            _dockDivider(context),
+            _DockFullscreenButton(setFullscreen: _setFullscreen),
+            _dockDivider(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dockDivider(BuildContext context) => Container(
+        width: 1,
+        height: 20,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        color: _ToolbarTheme.dividerColor(context) ??
+            _ToolbarTheme.borderColor(context),
+      );
 
   Widget _buildDraggableShowHide(BuildContext context) {
     return Obx(() {
@@ -451,41 +527,7 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
   }
 
   Widget _buildToolbar(BuildContext context) {
-    final List<Widget> toolbarItems = [];
-    toolbarItems.add(_PinMenu(state: widget.state));
-    if (!isWebDesktop) {
-      toolbarItems.add(_MobileActionMenu(ffi: widget.ffi));
-    }
-
-    toolbarItems.add(Obx(() {
-      if (PrivacyModeState.find(widget.id).isEmpty &&
-          pi.displaysCount.value > 1) {
-        return _MonitorMenu(
-            id: widget.id,
-            ffi: widget.ffi,
-            setRemoteState: widget.setRemoteState);
-      } else {
-        return Offstage();
-      }
-    }));
-
-    toolbarItems
-        .add(_ControlMenu(id: widget.id, ffi: widget.ffi, state: widget.state));
-    toolbarItems.add(_DisplayMenu(
-      id: widget.id,
-      ffi: widget.ffi,
-      state: widget.state,
-      setFullscreen: _setFullscreen,
-    ));
-    // Do not show keyboard for camera connection type.
-    if (widget.ffi.connType == ConnType.defaultConn) {
-      toolbarItems.add(_KeyboardMenu(id: widget.id, ffi: widget.ffi));
-    }
-    toolbarItems.add(_ChatMenu(id: widget.id, ffi: widget.ffi));
-    if (!isWeb) {
-      toolbarItems.add(_VoiceCallMenu(id: widget.id, ffi: widget.ffi));
-    }
-    if (!isWeb) toolbarItems.add(_RecordMenu());
+    final toolbarItems = _toolbarItems(withPin: true);
     toolbarItems.add(_CloseMenu(id: widget.id, ffi: widget.ffi));
     final toolbarBorderRadius = BorderRadius.all(Radius.circular(4.0));
     return Column(
@@ -522,7 +564,10 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
     );
   }
 
-  ThemeData themeData() {
+  ThemeData themeData({bool docked = false}) {
+    final menuBarBg = docked
+        ? const MaterialStatePropertyAll<Color?>(Colors.transparent)
+        : Theme.of(context).menuBarTheme.style?.backgroundColor;
     return Theme.of(context).copyWith(
       menuButtonTheme: MenuButtonThemeData(
         style: ButtonStyle(
@@ -544,10 +589,347 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
         padding: MaterialStatePropertyAll(EdgeInsets.zero),
         elevation: MaterialStatePropertyAll(0),
         shape: MaterialStatePropertyAll(BeveledRectangleBorder()),
-      ).copyWith(
-              backgroundColor:
-                  Theme.of(context).menuBarTheme.style?.backgroundColor)),
+      ).copyWith(backgroundColor: menuBarBg)),
     );
+  }
+}
+
+/// Button size in the tab-row toolbar, and the margin that centers it.
+const double _dockButtonSize = 30;
+const double _dockButtonVMargin =
+    (kDesktopRemoteToolsTabBarHeight - 1 - _dockButtonSize) / 2;
+
+/// Marks toolbar buttons as part of the docked bar (flat AnyDesk look).
+class _DockedScope extends InheritedWidget {
+  const _DockedScope({required Widget child}) : super(child: child);
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_DockedScope>() != null;
+
+  @override
+  bool updateShouldNotify(_DockedScope oldWidget) => false;
+}
+
+/// The face of a toolbar icon button. Floating toolbar: white icon on a
+/// colored tile (unchanged). Docked bar: flat icon, light tile on hover,
+/// rose when the item is active, red for close / recording.
+Widget _toolbarButtonFace(
+  BuildContext context, {
+  required Widget? icon,
+  required String? svg,
+  required Color color,
+  required Color hoverColor,
+  required bool hover,
+}) {
+  final docked = _DockedScope.of(context);
+  if (!docked || icon != null) {
+    // Custom icons (monitor picker) are drawn for 32px: fit the smaller
+    // docked button.
+    final face = (docked && icon != null)
+        ? FittedBox(fit: BoxFit.scaleDown, child: icon)
+        : icon ??
+        SvgPicture.asset(
+          svg!,
+          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+          width: _ToolbarTheme.buttonSize,
+          height: _ToolbarTheme.buttonSize,
+        );
+    return Material(
+        type: MaterialType.transparency,
+        child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_ToolbarTheme.iconRadius),
+              color: hover ? hoverColor : color,
+            ),
+            child: face));
+  }
+  final isRed = color == _ToolbarTheme.redColor;
+  final isOff = color == _ToolbarTheme.inactiveColor;
+  final textColor = Theme.of(context).textTheme.titleLarge?.color ??
+      Colors.black87;
+  final fg = isRed
+      ? _ToolbarTheme.hoverRedColor
+      : (isOff ? textColor.withOpacity(0.45) : textColor.withOpacity(0.78));
+  final bg = hover
+      ? (isRed
+          ? _ToolbarTheme.redColor.withOpacity(0.12)
+          : MyTheme.accent.withOpacity(0.10))
+      : Colors.transparent;
+  final iconColor = hover && !isRed ? MyTheme.accent : fg;
+  final iconData = _dockIcons[svg];
+  return Material(
+    type: MaterialType.transparency,
+    child: Ink(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        color: bg,
+      ),
+      child: Center(
+        child: iconData != null
+            ? Icon(iconData, size: _dockIconSize, color: iconColor)
+            : SvgPicture.asset(
+                svg!,
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                width: _dockIconSize + 4,
+                height: _dockIconSize + 4,
+              ),
+      ),
+    ),
+  );
+}
+
+/// Icon size in the tab-row toolbar: light, like the window buttons.
+const double _dockIconSize = 19;
+
+/// Clean outlined icons for the tab-row toolbar (the SVGs are drawn for the
+/// filled tiles of the floating toolbar).
+const Map<String, IconData> _dockIcons = {
+  'assets/actions.svg': Icons.bolt_rounded,
+  'assets/actions_mobile.svg': Icons.phone_android_rounded,
+  'assets/display.svg': Icons.desktop_windows_outlined,
+  'assets/keyboard.svg': Icons.keyboard_outlined,
+  'assets/chat.svg': Icons.chat_bubble_outline_rounded,
+  'assets/message_24dp_5F6368.svg': Icons.chat_bubble_outline_rounded,
+  'assets/voice_call.svg': Icons.phone_outlined,
+  'assets/call_wait.svg': Icons.phone_in_talk_outlined,
+  'assets/rec.svg': Icons.radio_button_checked_rounded,
+  'assets/fullscreen.svg': Icons.fullscreen_rounded,
+  'assets/close.svg': Icons.close_rounded,
+};
+
+/// Full-screen button for the docked bar (full screen keeps the classic
+/// floating toolbar so the whole screen is used for the remote desktop).
+class _DockFullscreenButton extends StatelessWidget {
+  final Function(bool) setFullscreen;
+  const _DockFullscreenButton({Key? key, required this.setFullscreen})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return _IconMenuButton(
+      assetName: 'assets/fullscreen.svg',
+      tooltip: 'Full screen',
+      onPressed: () => setFullscreen(true),
+      color: _ToolbarTheme.blueColor,
+      hoverColor: _ToolbarTheme.hoverBlueColor,
+    );
+  }
+}
+
+/// Segmented "Original | Shrink | Stretch" switch (top of the Display menu).
+class _ViewModeSwitch extends StatefulWidget {
+  final FFI ffi;
+  const _ViewModeSwitch({Key? key, required this.ffi})
+      : super(key: key);
+
+  @override
+  State<_ViewModeSwitch> createState() => _ViewModeSwitchState();
+}
+
+class _ViewModeSwitchState extends State<_ViewModeSwitch> {
+  String _value = kRemoteViewStyleShrink;
+
+  @override
+  void initState() {
+    super.initState();
+    bind.sessionGetViewStyle(sessionId: widget.ffi.sessionId).then((v) {
+      if (!mounted || v == null || v.isEmpty) return;
+      setState(() => _value =
+          v == kRemoteViewStyleAdaptive ? kRemoteViewStyleShrink : v);
+    });
+  }
+
+  Future<void> _set(String v) async {
+    setState(() => _value = v);
+    await bind.sessionSetViewStyle(sessionId: widget.ffi.sessionId, value: v);
+    widget.ffi.canvasModel.updateViewStyle();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedChoice<String>(
+      value: _value,
+      onChanged: _set,
+      options: const [
+        SegmentedOption(kRemoteViewStyleOriginal, 'Original',
+            Icons.crop_free_rounded,
+            tooltip: 'Show the remote screen at 100%'),
+        SegmentedOption(kRemoteViewStyleShrink, 'Shrink',
+            Icons.fit_screen_rounded,
+            tooltip: 'Fit big screens to the window'),
+        SegmentedOption(kRemoteViewStyleStretch, 'Stretch',
+            Icons.open_in_full_rounded,
+            tooltip: 'Always fill the window'),
+      ],
+    );
+  }
+}
+
+/// Segmented "Best | Balanced | Speed" image quality switch.
+class _QualitySwitch extends StatefulWidget {
+  final FFI ffi;
+  final String id;
+  const _QualitySwitch({Key? key, required this.ffi, required this.id})
+      : super(key: key);
+
+  @override
+  State<_QualitySwitch> createState() => _QualitySwitchState();
+}
+
+class _QualitySwitchState extends State<_QualitySwitch> {
+  String _value = kRemoteImageQualityBalanced;
+
+  @override
+  void initState() {
+    super.initState();
+    bind.sessionGetImageQuality(sessionId: widget.ffi.sessionId).then((v) {
+      if (!mounted || v == null || v.isEmpty) return;
+      setState(() => _value = v);
+    });
+  }
+
+  Future<void> _set(String v) async {
+    setState(() => _value = v);
+    await bind.sessionSetImageQuality(sessionId: widget.ffi.sessionId, value: v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SegmentedChoice<String>(
+          value: _value,
+          onChanged: _set,
+          options: const [
+            SegmentedOption(kRemoteImageQualityBest, 'Best', null,
+                tooltip: 'Good image quality'),
+            SegmentedOption(kRemoteImageQualityBalanced, 'Balanced', null),
+            SegmentedOption(kRemoteImageQualityLow, 'Speed', null,
+                tooltip: 'Optimize reaction time'),
+          ],
+        ),
+        if (_value == kRemoteImageQualityCustom)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(translate('Custom'),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.color
+                        ?.withOpacity(0.55))),
+          ),
+        TextButton(
+          onPressed: () {
+            _menuDismissCallback(widget.ffi);
+            setState(() => _value = kRemoteImageQualityCustom);
+            bind.sessionSetImageQuality(
+                sessionId: widget.ffi.sessionId,
+                value: kRemoteImageQualityCustom);
+            customImageQualityDialog(
+                widget.ffi.sessionId, widget.id, widget.ffi);
+          },
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            minimumSize: const Size(0, 28),
+            textStyle: const TextStyle(fontSize: 12.5),
+          ),
+          child: Text('${translate('Custom')}...'),
+        ),
+      ],
+    );
+  }
+}
+
+class SegmentedOption<T> {
+  final T value;
+  final String label;
+  final IconData? icon;
+  final String? tooltip;
+  const SegmentedOption(this.value, this.label, this.icon, {this.tooltip});
+}
+
+/// AnyDesk-like segmented buttons: selected one filled rose.
+class SegmentedChoice<T> extends StatelessWidget {
+  final List<SegmentedOption<T>> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  /// Compact: small icon + label for the docked bar.
+  final bool compact;
+  const SegmentedChoice({
+    Key? key,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+    this.compact = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor =
+        Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+    final border = _ToolbarTheme.dividerColor(context) ??
+        _ToolbarTheme.borderColor(context);
+    final radius = compact ? 6.0 : 7.0;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius - 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < options.length; i++) ...[
+              if (i > 0) Container(width: 1, height: compact ? 26 : 34, color: border),
+              _segment(options[i], textColor),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _segment(SegmentedOption<T> o, Color textColor) {
+    final selected = o.value == value;
+    final fg = selected ? Colors.white : textColor.withOpacity(0.8);
+    final child = Container(
+      height: compact ? 26 : 34,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 9 : 16),
+      alignment: Alignment.center,
+      color: selected ? MyTheme.accent : Colors.transparent,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (o.icon != null && compact) ...[
+            Icon(o.icon, size: 14, color: fg),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            translate(o.label),
+            style: TextStyle(
+              color: fg,
+              fontSize: compact ? 12 : 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+    final tappable = InkWell(
+      mouseCursor: SystemMouseCursors.click,
+      onTap: selected ? null : () => onChanged(o.value),
+      hoverColor: MyTheme.accent.withOpacity(0.08),
+      child: child,
+    );
+    return o.tooltip == null
+        ? tappable
+        : Tooltip(message: translate(o.tooltip!), child: tappable);
   }
 }
 
@@ -1041,10 +1423,11 @@ class _DisplayMenuState extends State<_DisplayMenu> {
     _screenAdjustor.updateScreen();
     menuChildrenGetter() {
       final menuChildren = <Widget>[
+        _menuSection(context, 'View Mode', _ViewModeSwitch(ffi: ffi)),
+        _menuSection(context, 'Quality', _QualitySwitch(ffi: ffi, id: id)),
+        Divider(),
         _screenAdjustor.adjustWindow(context),
-        viewStyle(),
         scrollStyle(),
-        imageQuality(),
         //codec(),
         _ResolutionsMenu(
           id: widget.id,
@@ -1101,23 +1484,31 @@ class _DisplayMenuState extends State<_DisplayMenu> {
       menuChildrenGetter: menuChildrenGetter,
     );
   }
-  viewStyle() {
-    return futureBuilder(
-        future: toolbarViewStyle(context, widget.id, widget.ffi),
-        hasData: (data) {
-          final v = data as List<TRadioMenu<String>>;
-          return Column(children: [
-            ...v
-                .map((e) => RdoMenuButton<String>(
-                    value: e.value,
-                    groupValue: e.groupValue,
-                    onChanged: e.onChanged,
-                    child: e.child,
-                    ffi: ffi))
-                .toList(),
-            Divider(),
-          ]);
-        });
+  /// Titled block at the top of the Display menu (AnyDesk-style panel).
+  Widget _menuSection(BuildContext context, String title, Widget child) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            translate(title),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.color
+                  ?.withOpacity(0.6),
+            ),
+          ),
+          const SizedBox(height: 6),
+          child,
+        ],
+      ),
+    );
   }
 
   scrollStyle() {
@@ -1160,25 +1551,6 @@ class _DisplayMenuState extends State<_DisplayMenu> {
     });
   }
 
-  imageQuality() {
-    return futureBuilder(
-        future: toolbarImageQuality(context, widget.id, widget.ffi),
-        hasData: (data) {
-          final v = data as List<TRadioMenu<String>>;
-          return _SubmenuButton(
-            ffi: widget.ffi,
-            child: Text(translate('Image Quality')),
-            menuChildren: v
-                .map((e) => RdoMenuButton<String>(
-                    value: e.value,
-                    groupValue: e.groupValue,
-                    onChanged: e.onChanged,
-                    child: e.child,
-                    ffi: ffi))
-                .toList(),
-          );
-        });
-  }
 /*
   codec() {
     return futureBuilder(
@@ -1965,16 +2337,10 @@ class _IconMenuButtonState extends State<_IconMenuButton> {
   @override
   Widget build(BuildContext context) {
     assert(widget.assetName != null || widget.icon != null);
-    final icon = widget.icon ??
-        SvgPicture.asset(
-          widget.assetName!,
-          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          width: _ToolbarTheme.buttonSize,
-          height: _ToolbarTheme.buttonSize,
-        );
+    final docked = _DockedScope.of(context);
     var button = SizedBox(
-      width: widget.width ?? _ToolbarTheme.buttonSize,
-      height: _ToolbarTheme.buttonSize,
+      width: widget.width ?? (docked ? _dockButtonSize : _ToolbarTheme.buttonSize),
+      height: docked ? _dockButtonSize : _ToolbarTheme.buttonSize,
       child: MenuItemButton(
           style: ButtonStyle(
               backgroundColor: MaterialStatePropertyAll(Colors.transparent),
@@ -1986,19 +2352,17 @@ class _IconMenuButtonState extends State<_IconMenuButton> {
           onPressed: widget.onPressed,
           child: Tooltip(
             message: translate(widget.tooltip),
-            child: Material(
-                type: MaterialType.transparency,
-                child: Ink(
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(_ToolbarTheme.iconRadius),
-                      color: hover ? widget.hoverColor : widget.color,
-                    ),
-                    child: icon)),
+            child: _toolbarButtonFace(context,
+                icon: widget.icon,
+                svg: widget.assetName,
+                color: widget.color,
+                hoverColor: widget.hoverColor,
+                hover: hover),
           )),
     ).marginSymmetric(
         horizontal: widget.hMargin ?? _ToolbarTheme.buttonHMargin,
-        vertical: widget.vMargin ?? _ToolbarTheme.buttonVMargin);
+        vertical: widget.vMargin ??
+            (docked ? _dockButtonVMargin : _ToolbarTheme.buttonVMargin));
     button = Tooltip(
       message: widget.tooltip,
       child: button,
@@ -2045,16 +2409,10 @@ class _IconSubmenuButtonState extends State<_IconSubmenuButton> {
   @override
   Widget build(BuildContext context) {
     assert(widget.svg != null || widget.icon != null);
-    final icon = widget.icon ??
-        SvgPicture.asset(
-          widget.svg!,
-          colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          width: _ToolbarTheme.buttonSize,
-          height: _ToolbarTheme.buttonSize,
-        );
+    final docked = _DockedScope.of(context);
     final button = SizedBox(
-        width: widget.width ?? _ToolbarTheme.buttonSize,
-        height: _ToolbarTheme.buttonSize,
+        width: widget.width ?? (docked ? _dockButtonSize : _ToolbarTheme.buttonSize),
+        height: docked ? _dockButtonSize : _ToolbarTheme.buttonSize,
         child: SubmenuButton(
             menuStyle:
                 widget.menuStyle ?? _ToolbarTheme.defaultMenuStyle(context),
@@ -2064,15 +2422,12 @@ class _IconSubmenuButtonState extends State<_IconSubmenuButton> {
                 }),
             child: Tooltip(
                 message: translate(widget.tooltip),
-                child: Material(
-                    type: MaterialType.transparency,
-                    child: Ink(
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(_ToolbarTheme.iconRadius),
-                          color: hover ? widget.hoverColor : widget.color,
-                        ),
-                        child: icon))),
+                child: _toolbarButtonFace(context,
+                    icon: widget.icon,
+                    svg: widget.svg,
+                    color: widget.color,
+                    hoverColor: widget.hoverColor,
+                    hover: hover)),
             menuChildren: widget
                 .menuChildrenGetter()
                 .map((e) => _buildPointerTrackWidget(e, widget.ffi))
@@ -2080,7 +2435,7 @@ class _IconSubmenuButtonState extends State<_IconSubmenuButton> {
     return MenuBar(children: [
       button.marginSymmetric(
           horizontal: _ToolbarTheme.buttonHMargin,
-          vertical: _ToolbarTheme.buttonVMargin)
+          vertical: docked ? _dockButtonVMargin : _ToolbarTheme.buttonVMargin)
     ]);
   }
 }

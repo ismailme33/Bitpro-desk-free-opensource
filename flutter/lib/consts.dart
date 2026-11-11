@@ -8,6 +8,9 @@ const int kMaxVirtualDisplayCount = 4;
 const int kAllVirtualDisplay = -1;
 
 const double kDesktopRemoteTabBarHeight = 28.0;
+
+/// Tab row of remote desktop windows, which also holds the session tools.
+const double kDesktopRemoteToolsTabBarHeight = 36.0;
 const int kInvalidWindowId = -1;
 const int kMainWindowId = 0;
 
@@ -302,6 +305,12 @@ const kRemoteViewStyleOriginal = 'original';
 
 /// [kRemoteViewStyleAdaptive] Show remote image scaling by ratio factor.
 const kRemoteViewStyleAdaptive = 'adaptive';
+
+/// [kRemoteViewStyleShrink] Fit the window, but never enlarge (default).
+const kRemoteViewStyleShrink = 'shrink';
+
+/// [kRemoteViewStyleStretch] Always fill the window, enlarging if needed.
+const kRemoteViewStyleStretch = 'stretch';
 
 /// [kRemoteScrollStyleAuto] Scroll image auto by position.
 const kRemoteScrollStyleAuto = 'scrollauto';

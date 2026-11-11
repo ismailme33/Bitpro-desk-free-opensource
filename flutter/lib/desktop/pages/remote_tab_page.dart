@@ -8,6 +8,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/shared_state.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/models/input_model.dart';
+import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/desktop/pages/remote_page.dart';
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:bot_toast/bot_toast.dart';
 
 import '../../common/widgets/dialog.dart';
@@ -127,7 +129,14 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
       body: DesktopTab(
         controller: tabController,
         onWindowCloseButton: handleWindowCloseButton,
-        tail: const AddButton(),
+        // Session tools live in the tab row (one AnyDesk-style bar).
+        tail: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _RemoteTabTools(controller: tabController),
+            const AddButton(),
+          ],
+        ),
         selectedBorderColor: MyTheme.accent,
         pageViewBuilder: (pageView) => pageView,
         labelGetter: DesktopTab.tablabelGetter,
@@ -245,7 +254,9 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
     final perms = ffi.ffiModel.permissions;
     final sessionId = ffi.sessionId;
     final toolbarState = remotePage.toolbarState;
-    menu.addAll([
+    // In a window the toolbar is docked and always shown; hiding only
+    // applies to the floating toolbar in full screen.
+    if (stateGlobal.fullscreen.isTrue) menu.addAll([
       MenuEntryButton<String>(
         childBuilder: (TextStyle? style) => Obx(() => Text(
               translate(
@@ -528,5 +539,71 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
     }
     _update_remote_count();
     return returnValue;
+  }
+}
+
+/// Tools of the selected session, shown in the tab row (hidden in full
+/// screen, where the floating toolbar is used).
+class _RemoteTabTools extends StatefulWidget {
+  final DesktopTabController controller;
+  const _RemoteTabTools({Key? key, required this.controller}) : super(key: key);
+
+  @override
+  State<_RemoteTabTools> createState() => _RemoteTabToolsState();
+}
+
+class _RemoteTabToolsState extends State<_RemoteTabTools> {
+  bool _retryScheduled = false;
+
+  /// The page's session is created when the page first builds, which can be
+  /// after the tab row: try again on the next frame.
+  void _retryNextFrame() {
+    if (_retryScheduled) return;
+    _retryScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _retryScheduled = false;
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final state = widget.controller.state.value;
+      if (stateGlobal.fullscreen.isTrue ||
+          state.tabs.isEmpty ||
+          state.selected >= state.tabs.length) {
+        return const SizedBox.shrink();
+      }
+      final info = state.selectedTabInfo;
+      final page = info.page;
+      if (page is! RemotePage) return const SizedBox.shrink();
+      final FFI ffi;
+      try {
+        ffi = page.ffi;
+      } catch (_) {
+        _retryNextFrame();
+        return const SizedBox.shrink();
+      }
+      return MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: ffi.ffiModel),
+          ChangeNotifierProvider.value(value: ffi.imageModel),
+          ChangeNotifierProvider.value(value: ffi.cursorModel),
+          ChangeNotifierProvider.value(value: ffi.canvasModel),
+          ChangeNotifierProvider.value(value: ffi.recordingModel),
+        ],
+        child: RemoteToolbar(
+          key: ValueKey('tools-${info.key}'),
+          id: page.id,
+          ffi: ffi,
+          state: page.toolbarState,
+          docked: true,
+          onEnterOrLeaveImageSetter: (_, __) {},
+          onEnterOrLeaveImageCleaner: (_) {},
+          setRemoteState: (fn) => fn(),
+        ),
+      );
+    });
   }
 }

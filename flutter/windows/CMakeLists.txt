@@ -101,7 +101,13 @@ if(PLUGIN_BUNDLED_LIBRARIES)
 endif()
 
 # flutter_rust_bridge
-set(RUSTDESK_LIB_BUILD_TYPE $<IF:$<CONFIG:Debug>,debug,release>)
+# Debug runs use target/debug when a debug Rust build exists, otherwise the
+# release library (Dart debugging doesn't need a debug Rust build).
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../target/debug/libhoptodesk.dll")
+  set(RUSTDESK_LIB_BUILD_TYPE $<IF:$<CONFIG:Debug>,debug,release>)
+else()
+  set(RUSTDESK_LIB_BUILD_TYPE release)
+endif()
 message(STATUS "rustdesk lib build type: ${RUSTDESK_LIB_BUILD_TYPE}")
 set(RUSTDESK_LIB "../../target/${RUSTDESK_LIB_BUILD_TYPE}/libhoptodesk.dll")
 install(FILES "${RUSTDESK_LIB}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"

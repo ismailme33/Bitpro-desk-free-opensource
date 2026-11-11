@@ -4,7 +4,6 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/models/chat_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../mobile/pages/home_page.dart';
 
 enum ChatPageType {
@@ -90,7 +89,7 @@ final appBarActions = [
     return ChangeNotifierProvider.value(
       value: chatModel,
       child: Container(
-        color: Color(0xFFB2DFFA), //hophere Theme.of(context).scaffoldBackgroundColor,
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Consumer<ChatModel>(
           builder: (context, chatModel, child) {
             final readOnly = type == ChatPageType.mobileMain &&
@@ -104,121 +103,153 @@ final appBarActions = [
                                 (e) => e.id == chatModel.currentKey.connId)
                             ?.disconnected ==
                         true;
-            return Stack(
-              children: [
-                LayoutBuilder(builder: (context, constraints) {
-
-				  final hasMessages = chatModel.messages[chatModel.currentKey]?.chatMessages.isNotEmpty ?? false;
-				  
-				  // Show empty state when no messages
-				if (!hasMessages) {
-				  return Center(
-					child: Column(
-					  mainAxisAlignment: MainAxisAlignment.center,
-					  children: [
-						SvgPicture.asset(
-						  'assets/featured.svg',
-						  height: 100,
-						).paddingOnly(bottom: 10),
-						Text(
-						  translate('Chat sessions will show here.'),
-						  textAlign: TextAlign.center,
-						  style: TextStyle(
-							color: Colors.grey[600],
-						  ),
-						),
-						SizedBox(height: 8),
-						Text(
-						  translate('Connect to a device to start chatting.'),
-						  textAlign: TextAlign.center,
-						  style: TextStyle(
-							fontSize: 14,
-							color: Colors.grey[600],
-						  ),
-						),						
-					  ],
-					),
-				  );
-				}
-				  
-				  
-                  final chat = DashChat(
-                    onSend: chatModel.send,
-                    currentUser: chatModel.me,
-                    messages: chatModel
-                            .messages[chatModel.currentKey]?.chatMessages ??
+            final hasMessages = chatModel.messages[chatModel.currentKey]
+                    ?.chatMessages
+                    .isNotEmpty ??
+                false;
+            final textColor =
+                Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+            return LayoutBuilder(builder: (context, constraints) {
+              final chat = DashChat(
+                onSend: chatModel.send,
+                currentUser: chatModel.me,
+                messages:
+                    chatModel.messages[chatModel.currentKey]?.chatMessages ??
                         [],
-                    readOnly: readOnly,
-                    inputOptions: InputOptions(
-                      focusNode: chatModel.inputNode,
-                      textController: chatModel.textController,
-                      inputTextStyle: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).textTheme.titleLarge?.color),
-                      inputDecoration: InputDecoration(
-                        isDense: true,
-                        hintText: translate('Write a message'),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.background,
-                        contentPadding: EdgeInsets.all(10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: const BorderSide(
-                            width: 1,
-                            style: BorderStyle.solid,
+                readOnly: readOnly,
+                inputOptions: InputOptions(
+                  focusNode: chatModel.inputNode,
+                  textController: chatModel.textController,
+                  inputTextStyle: TextStyle(fontSize: 14, color: textColor),
+                  inputDecoration: InputDecoration(
+                    isDense: true,
+                    hintText: translate('Write a message'),
+                    filled: true,
+                    fillColor: MyTheme.panel(context),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 11),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide:
+                          BorderSide(color: MyTheme.panelBorder(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                      borderSide:
+                          BorderSide(color: MyTheme.panelBorder(context)),
+                    ),
+                  ),
+                  sendButtonBuilder: defaultSendButton(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    color: MyTheme.accent,
+                    icon: Icons.send_rounded,
+                  ),
+                ),
+                messageOptions: MessageOptions(
+                  showOtherUsersAvatar: false,
+                  showOtherUsersName: false,
+                  maxWidth: constraints.maxWidth * 0.7,
+                  messageTextBuilder: (message, _, __) {
+                    final isOwnMessage = message.user.id.isBlank!;
+                    final color = isOwnMessage ? Colors.white : textColor;
+                    return Column(
+                      crossAxisAlignment: isOwnMessage
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(message.text,
+                            style: TextStyle(color: color, fontSize: 13.5)),
+                        Text(
+                          "${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')}",
+                          style: TextStyle(
+                            color: color.withOpacity(0.6),
+                            fontSize: 9.5,
                           ),
-                        ),
-                      ),
-                      sendButtonBuilder: defaultSendButton(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 6, vertical: 0),
-                        color: MyTheme.accent,
-                        icon: Icons.send_rounded,
+                        ).marginOnly(top: 3),
+                      ],
+                    );
+                  },
+                  messageDecorationBuilder:
+                      (message, previousMessage, nextMessage) {
+                    final isOwnMessage = message.user.id.isBlank!;
+                    return defaultMessageDecoration(
+                      color: isOwnMessage
+                          ? MyTheme.accent
+                          : MyTheme.panel(context),
+                      borderTopLeft: 10,
+                      borderTopRight: 10,
+                      borderBottomRight: isOwnMessage ? 2 : 10,
+                      borderBottomLeft: isOwnMessage ? 10 : 2,
+                    );
+                  },
+                ),
+              );
+              return Stack(
+                children: [
+                  // Quiet empty state behind the (still usable) chat.
+                  if (!hasMessages)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: _EmptyChatHint(
+                            readOnly: readOnly, textColor: textColor),
                       ),
                     ),
-                    messageOptions: MessageOptions(
-                      showOtherUsersAvatar: false,
-                      showOtherUsersName: false,
-                      textColor: MyTheme.darkGray,
-                      maxWidth: constraints.maxWidth * 0.7,
-                      messageTextBuilder: (message, _, __) {
-                        final isOwnMessage = message.user.id.isBlank!;
-                        return Column(
-                          crossAxisAlignment: isOwnMessage
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(message.text,
-                                style: TextStyle(color: Colors.black)),
-                            Text(
-                              "${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')}",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 9,
-                              ),
-                            ).marginOnly(top: 3),
-                          ],
-                        );
-                      },
-                      messageDecorationBuilder:
-                          (message, previousMessage, nextMessage) {
-                        final isOwnMessage = message.user.id.isBlank!;
-                        return defaultMessageDecoration(
-                          color:
-                              isOwnMessage ? MyTheme.accent : Colors.white,
-                          borderTopLeft: 8,
-                          borderTopRight: 8,
-                          borderBottomRight: isOwnMessage ? 2 : 8,
-                          borderBottomLeft: isOwnMessage ? 8 : 2,
-                        );
-                      },
-                    ),
-                  );
-                  return SelectionArea(child: chat);
-                }),
-              ],
-            ).paddingOnly(bottom: 8);
+                  SelectionArea(child: chat),
+                ],
+              );
+            });
           },
+        ).paddingOnly(bottom: 8),
+      ),
+    );
+  }
+}
+
+/// Shown while a conversation has no messages yet.
+class _EmptyChatHint extends StatelessWidget {
+  final bool readOnly;
+  final Color textColor;
+  const _EmptyChatHint(
+      {Key? key, required this.readOnly, required this.textColor})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 56, left: 24, right: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: MyTheme.accent.withOpacity(0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.chat_bubble_outline_rounded,
+                  color: MyTheme.accent, size: 24),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              translate('No messages yet'),
+              style: TextStyle(
+                color: textColor.withOpacity(0.85),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              translate(readOnly
+                  ? 'Chat is available while connected.'
+                  : 'Send a message to start the conversation.'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: textColor.withOpacity(0.55), fontSize: 12.5),
+            ),
+          ],
         ),
       ),
     );

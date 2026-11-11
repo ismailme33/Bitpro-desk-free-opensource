@@ -1533,7 +1533,11 @@ class ViewStyle {
 
   double get scale {
     double s = 1.0;
-    if (style == kRemoteViewStyleAdaptive) {
+    // Stretch fills the window. Shrink (and on desktop the older "adaptive")
+    // only scales down, so small remote screens stay sharp at 100%.
+    if (style == kRemoteViewStyleAdaptive ||
+        style == kRemoteViewStyleStretch ||
+        style == kRemoteViewStyleShrink) {
       if (width != 0 &&
           height != 0 &&
           displayWidth != 0 &&
@@ -1541,6 +1545,9 @@ class ViewStyle {
         final s1 = width / displayWidth;
         final s2 = height / displayHeight;
         s = s1 < s2 ? s1 : s2;
+        final noUpscale = style == kRemoteViewStyleShrink ||
+            (style == kRemoteViewStyleAdaptive && (isDesktop || isWebDesktop));
+        if (noUpscale && s > 1.0) s = 1.0;
       }
     }
     return s;
@@ -1650,9 +1657,15 @@ class CanvasModel with ChangeNotifier {
   updateSize() => _size = getSize();
   
   updateViewStyle({refreshMousePos = true, notify = true}) async {
-    final style = await bind.sessionGetViewStyle(sessionId: sessionId);
+    var style = await bind.sessionGetViewStyle(sessionId: sessionId);
     if (style == null) {
       return;
+    }
+    // One-time upgrade on desktop: the older "adaptive" setting becomes
+    // Shrink (mobile keeps adaptive, its normal mode).
+    if (isDesktop && style == kRemoteViewStyleAdaptive) {
+      style = kRemoteViewStyleShrink;
+      await bind.sessionSetViewStyle(sessionId: sessionId, value: style);
     }
 
     updateSize();

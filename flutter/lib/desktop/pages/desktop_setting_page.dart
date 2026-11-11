@@ -1561,17 +1561,25 @@ class _DisplayState extends State<_Display> {
       setState(() {});
     }
 
-    final groupValue = bind.mainGetUserDefaultOption(key: kOptionViewStyle);
+    // "adaptive" (older setting) is shown and used as Shrink.
+    final stored = bind.mainGetUserDefaultOption(key: kOptionViewStyle);
+    final groupValue =
+        stored == kRemoteViewStyleAdaptive ? kRemoteViewStyleShrink : stored;
     return _Card(title: 'Default View Style', children: [
       _Radio(context,
           value: kRemoteViewStyleOriginal,
           groupValue: groupValue,
-          label: 'Scale original',
+          label: 'Original',
           onChanged: isOptFixed ? null : onChanged),
       _Radio(context,
-          value: kRemoteViewStyleAdaptive,
+          value: kRemoteViewStyleShrink,
           groupValue: groupValue,
-          label: 'Scale adaptive',
+          label: 'Shrink (fit big screens)',
+          onChanged: isOptFixed ? null : onChanged),
+      _Radio(context,
+          value: kRemoteViewStyleStretch,
+          groupValue: groupValue,
+          label: 'Stretch (always fill)',
           onChanged: isOptFixed ? null : onChanged),
     ]);
   }

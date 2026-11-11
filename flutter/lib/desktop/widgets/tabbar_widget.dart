@@ -514,12 +514,13 @@ class _DesktopTabState extends State<DesktopTab>
             !(kUseCompatibleUiMode && isHideSingleItem())) {
           final showBottomDivider = _showTabBarBottomDivider(tabType);
           return SizedBox(
-            height: _kTabBarHeight,
+            height: tabBarHeightOf(tabType),
             child: Column(
               children: [
                 SizedBox(
                   height:
-                      showBottomDivider ? _kTabBarHeight - 1 : _kTabBarHeight,
+                      showBottomDivider ? tabBarHeightOf(tabType) - 1
+                          : tabBarHeightOf(tabType),
                   child: _buildBar(),
                 ),
                 if (showBottomDivider)
@@ -732,6 +733,9 @@ class WindowActionPanel extends StatefulWidget {
 }
 
 class WindowActionPanelState extends State<WindowActionPanel> {
+  double get _actionBoxSize =>
+      tabBarHeightOf(widget.tabController.tabType) - 1;
+
   bool showTabDowndown() {
     return widget.tabController.state.value.tabs.length > 1 &&
         (widget.tabController.tabType == DesktopTabType.remoteScreen ||
@@ -770,6 +774,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
               if (widget.showMinimize && !isMacOS)
                 ActionIcon(
                   message: 'Minimize',
+                  boxSize: _actionBoxSize,
                   icon: IconFont.min,
                   onTap: () {
                     if (widget.isMainWindow) {
@@ -785,6 +790,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
                       message: stateGlobal.isMaximized.isTrue
                           ? 'Restore'
                           : 'Maximize',
+                      boxSize: _actionBoxSize,
                       icon: stateGlobal.isMaximized.isTrue
                           ? IconFont.restore
                           : IconFont.max,
@@ -797,6 +803,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
                 ActionIcon(
                   message: 'Close',
                   icon: IconFont.close,
+                  boxSize: _actionBoxSize,
                   onTap: () async {
                     final res = await widget.onClose?.call() ?? true;
                     if (res) {
@@ -1170,8 +1177,8 @@ class _TabState extends State<_Tab> with RestorationMixin {
                   SizedBox(
                       // _kTabBarHeight also displays normally
                       height: _showTabBarBottomDivider(widget.tabType)
-                          ? _kTabBarHeight - 1
-                          : _kTabBarHeight,
+                          ? tabBarHeightOf(widget.tabType) - 1
+                          : tabBarHeightOf(widget.tabType),
                       child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -1423,6 +1430,13 @@ class _TabDropDownButtonState extends State<_TabDropDownButton> {
     );
   }
 }
+
+/// Remote desktop windows have a taller tab row: the session tools sit in it
+/// (one AnyDesk-style bar). Other windows keep the slim title bar.
+double tabBarHeightOf(DesktopTabType tabType) =>
+    tabType == DesktopTabType.remoteScreen
+        ? kDesktopRemoteToolsTabBarHeight
+        : _kTabBarHeight;
 
 bool _showTabBarBottomDivider(DesktopTabType tabType) {
   return tabType == DesktopTabType.main || tabType == DesktopTabType.install;

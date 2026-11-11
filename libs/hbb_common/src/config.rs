@@ -2065,7 +2065,9 @@ impl UserDefaultConfig {
             #[cfg(any(target_os = "android", target_os = "ios"))]
             keys::OPTION_VIEW_STYLE => self.get_string(key, "adaptive", vec!["original"]),
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            keys::OPTION_VIEW_STYLE => self.get_string(key, "shrink", vec!["adaptive"]),
+            keys::OPTION_VIEW_STYLE => {
+                self.get_string(key, "shrink", vec!["adaptive", "original", "stretch"])
+            }
             keys::OPTION_SCROLL_STYLE => {
                 self.get_string(key, "scrollauto", vec!["scrolledge", "scrollbar"])
             }

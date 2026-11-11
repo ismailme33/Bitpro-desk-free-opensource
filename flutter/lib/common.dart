@@ -28,6 +28,7 @@ import 'package:window_size/window_size.dart' as window_size;
 
 import '../consts.dart';
 import 'common/widgets/overlay.dart';
+import 'common/connecting_hint.dart';
 import 'mobile/pages/file_manager_page.dart';
 import 'mobile/pages/remote_page.dart';
 import 'mobile/pages/view_camera_page.dart';
@@ -677,14 +678,18 @@ class MyTheme {
     return Theme.of(context).extension<TabbarTheme>()!;
   }
 
+  /// Not set yet (new install) means Dark: Bitpro Desk is dark by default.
+  /// "Follow System" is stored explicitly as "system".
   static ThemeMode themeModeFromString(String v) {
     switch (v) {
       case "light":
         return ThemeMode.light;
       case "dark":
         return ThemeMode.dark;
-      default:
+      case "system":
         return ThemeMode.system;
+      default:
+        return ThemeMode.dark;
     }
   }
 }
@@ -2515,6 +2520,8 @@ connect(BuildContext context, String id,
     String? tokenex,
     bool? isSharedPassword}) async {
   if (id == '') return;
+  // Opening the session window takes a few seconds: show feedback now.
+  if (isDesktop && desktopType == DesktopType.main) showConnectingHint(id);
   if (!isDesktop || desktopType == DesktopType.main) {
     try {
       if (Get.isRegistered<IDTextEditingController>()) {
@@ -3763,7 +3770,8 @@ bool get isCustomClient {
 }
 
 get defaultOptionLang => isCustomClient ? 'default' : '';
-get defaultOptionTheme => isCustomClient ? 'system' : '';
+// Stored when the user picks "Follow System" (empty means the Dark default).
+get defaultOptionTheme => 'system';
 get defaultOptionYes => isCustomClient ? 'Y' : '';
 get defaultOptionNo => isCustomClient ? 'N' : '';
 get defaultOptionWhitelist => isCustomClient ? ',' : '';

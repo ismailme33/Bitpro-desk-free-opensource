@@ -337,15 +337,15 @@ Widget buildConnectionCard(Client client) {
       key: ValueKey(client.id),
       children: [
         _CmHeader(client: client),
-        client.type_() != ClientType.remote || client.disconnected
-            ? Offstage()
-            : _PrivilegeBoard(client: client),
+        // Permissions take the free space (scrolls if the window is small);
+        // the action buttons stay at the bottom.
         Expanded(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: _CmControlPanel(client: client),
-          ),
-        )
+          child: client.type_() != ClientType.remote || client.disconnected
+              ? const SizedBox.shrink()
+              : _PrivilegeBoard(client: client),
+        ),
+        const SizedBox(height: 8),
+        _CmControlPanel(client: client),
       ],
     ).paddingSymmetric(vertical: 4.0, horizontal: 8.0),
   );
@@ -556,154 +556,110 @@ class _PrivilegeBoard extends StatefulWidget {
 
 class _PrivilegeBoardState extends State<_PrivilegeBoard> {
   late final client = widget.client;
-  Widget buildPermissionIcon(bool enabled, IconData iconData,
-      Function(bool)? onTap, String tooltipText) {
-    return Tooltip(
-      message: "$tooltipText: ${enabled ? "ON" : "OFF"}",
-      waitDuration: Duration.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          color: enabled ? MyTheme.accent : MyTheme.panelBorder(context),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        padding: EdgeInsets.all(8.0),
-        child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
-          onTap: () =>
-              checkClickTime(widget.client.id, () => onTap?.call(!enabled)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: Icon(
-                  iconData,
-                  color: enabled ? Colors.white : Colors.grey[600],
+
+  /// Switch a permission for this session (same backend call as before).
+  void _set(String name, bool enabled, void Function(bool) apply) {
+    checkClickTime(client.id, () {
+      bind.cmSwitchPermission(connId: client.id, name: name, enabled: enabled);
+      setState(() => apply(enabled));
+    });
+  }
+
+  /// One settings-style row: icon, label, switch. The whole row is clickable.
+  Widget _row(BuildContext context, IconData icon, String label, bool value,
+      void Function(bool) onChanged) {
+    final textColor =
+        Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+    return InkWell(
+      mouseCursor: SystemMouseCursors.click,
+      borderRadius: BorderRadius.circular(6),
+      onTap: () => onChanged(!value),
+      child: SizedBox(
+        height: 34,
+        child: Row(
+          children: [
+            Icon(icon,
+                size: 17,
+                color: value ? MyTheme.accent : textColor.withOpacity(0.45)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                translate(label),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textColor.withOpacity(value ? 0.9 : 0.6),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+            Transform.scale(
+              scale: 0.72,
+              alignment: Alignment.centerRight,
+              child: Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: Colors.white,
+                activeTrackColor: MyTheme.accent,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ).paddingSymmetric(horizontal: 6),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final crossAxisCount = 4;
-    final spacing = 10.0;
+    final muted =
+        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
+    final rows = <Widget>[
+      _row(context, Icons.mouse_outlined, 'Keyboard & mouse', client.keyboard,
+          (v) => _set('keyboard', v, (e) => client.keyboard = e)),
+      _row(context, Icons.content_paste_rounded, 'Clipboard', client.clipboard,
+          (v) => _set('clipboard', v, (e) => client.clipboard = e)),
+      _row(context, Icons.volume_up_outlined, 'Audio', client.audio,
+          (v) => _set('audio', v, (e) => client.audio = e)),
+      _row(context, Icons.folder_copy_outlined, 'File transfer', client.file,
+          (v) => _set('file', v, (e) => client.file = e)),
+      _row(context, Icons.restart_alt_rounded, 'Remote restart',
+          client.restart,
+          (v) => _set('restart', v, (e) => client.restart = e)),
+      _row(context, Icons.videocam_outlined, 'Session recording',
+          client.recording,
+          (v) => _set('recording', v, (e) => client.recording = e)),
+      // only windows support block input
+      if (isWindows)
+        _row(context, Icons.block_rounded, 'Block user input',
+            client.blockInput,
+            (v) => _set('block_input', v, (e) => client.blockInput = e)),
+    ];
     return Container(
       width: double.infinity,
-      height: 160.0,
-      margin: EdgeInsets.all(5.0),
-      padding: EdgeInsets.all(5.0),
+      margin: const EdgeInsets.symmetric(horizontal: 5.0),
+      padding: const EdgeInsets.fromLTRB(8, 10, 6, 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10.0),
         color: MyTheme.panel(context),
         border: Border.all(color: MyTheme.panelBorder(context)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            translate("Permissions"),
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ).marginOnly(left: 4.0, top: 4.0, bottom: 8.0),
+            translate('PERMISSIONS'),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: muted,
+            ),
+          ).marginOnly(left: 6, bottom: 4),
           Expanded(
-            child: GridView.count(
-              crossAxisCount: crossAxisCount,
-              padding: EdgeInsets.symmetric(horizontal: spacing),
-              mainAxisSpacing: spacing,
-              crossAxisSpacing: spacing,
-              children: [
-                buildPermissionIcon(
-                  client.keyboard,
-                  Icons.keyboard,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "keyboard", enabled: enabled);
-                    setState(() {
-                      client.keyboard = enabled;
-                    });
-                  },
-                  translate('Enable keyboard/mouse'),
-                ),
-                buildPermissionIcon(
-                  client.clipboard,
-                  Icons.assignment_rounded,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "clipboard", enabled: enabled);
-                    setState(() {
-                      client.clipboard = enabled;
-                    });
-                  },
-                  translate('Enable Clipboard'),
-                ),
-                buildPermissionIcon(
-                  client.audio,
-                  Icons.volume_up_rounded,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "audio", enabled: enabled);
-                    setState(() {
-                      client.audio = enabled;
-                    });
-                  },
-                  translate('Enable audio'),
-                ),
-                buildPermissionIcon(
-                  client.file,
-                  Icons.upload_file_rounded,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "file", enabled: enabled);
-                    setState(() {
-                      client.file = enabled;
-                    });
-                  },
-                  translate('Enable file copy and paste'),
-                ),
-                buildPermissionIcon(
-                  client.restart,
-                  Icons.restart_alt_rounded,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "restart", enabled: enabled);
-                    setState(() {
-                      client.restart = enabled;
-                    });
-                  },
-                  translate('Enable remote restart'),
-                ),
-                buildPermissionIcon(
-                  client.recording,
-                  Icons.videocam_rounded,
-                  (enabled) {
-                    bind.cmSwitchPermission(
-                        connId: client.id, name: "recording", enabled: enabled);
-                    setState(() {
-                      client.recording = enabled;
-                    });
-                  },
-                  translate('Enable Recording Session'),
-                ),
-                // only windows support block input
-                if (isWindows)
-                  buildPermissionIcon(
-                    client.blockInput,
-                    Icons.block,
-                    (enabled) {
-                      bind.cmSwitchPermission(
-                          connId: client.id,
-                          name: "block_input",
-                          enabled: enabled);
-                      setState(() {
-                        client.blockInput = enabled;
-                      });
-                    },
-                    translate('Enable blocking user input'),
-                  )
-              ],
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: rows,
             ),
           ),
         ],
@@ -713,6 +669,9 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
 }
 
 const double buttonBottomMargin = 8;
+
+/// Red for destructive actions in the connection manager.
+const Color _kDanger = Color(0xFFDC2626);
 
 class _CmControlPanel extends StatelessWidget {
   final Client client;
@@ -886,16 +845,18 @@ class _CmControlPanel extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              // Outlined danger button: clear, but not shouting.
               child: buildButton(context,
-                  color: Colors.redAccent,
+                  color: _kDanger.withOpacity(0.06),
+                  border: Border.all(color: _kDanger.withOpacity(0.45)),
                   onClick: handleDisconnect,
                   text: 'Disconnect',
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.link_off_rounded,
-                    color: Colors.white,
-                    size: 14,
+                    color: _kDanger,
+                    size: 16,
                   ),
-                  textColor: Colors.white),
+                  textColor: _kDanger),
             ),
           ],
         )
@@ -1017,8 +978,8 @@ class _CmControlPanel extends StatelessWidget {
       GestureTapDownCallback? onTapDown}) {
     assert(!(onClick == null && onTapDown == null));
     Widget textWidget;
-    final textStyle =
-        TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w500);
+    final textStyle = TextStyle(
+        color: textColor, fontSize: 13.5, fontWeight: FontWeight.w600);
     if (icon != null) {
       textWidget = Text(
         translate(text),
@@ -1036,7 +997,7 @@ class _CmControlPanel extends StatelessWidget {
     }
     final borderRadius = BorderRadius.circular(8.0);
     final btn = Container(
-      height: 36,
+      height: 40,
       decoration: BoxDecoration(
           color: color, borderRadius: borderRadius, border: border),
       child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 
