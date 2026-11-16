@@ -1946,7 +1946,14 @@ impl<T: InvokeUiSession> Remote<T> {
                     let keyboard = self.handler.server_keyboard_enabled.read().unwrap().clone();
                     #[cfg(feature = "flutter")]
                     {
-                        if uac && keyboard {
+                        if uac && keyboard && self.elevation_requested {
+                            // We already asked to elevate: this UAC prompt is
+                            // the remote user's approval step. Keep showing
+                            // "waiting", not the "request elevation" dialog
+                            // again (that looked like it asked over and over).
+                            self.handler.cancel_msgbox("on-uac");
+                            self.handler.msgbox("wait-uac", "", "", "");
+                        } else if uac && keyboard {
                             self.handler.msgbox(
                                 "on-uac",
                                 "Prompt",
@@ -2014,6 +2021,9 @@ impl<T: InvokeUiSession> Remote<T> {
                         if err.is_empty() {
                             self.handler.msgbox("wait-uac", "", "", "");
                         } else {
+                            // Request over (failed / not approved): a later
+                            // UAC prompt shows the normal dialog again.
+                            self.elevation_requested = false;
                             self.handler.cancel_msgbox("wait-uac");
                             self.handler
                                 .msgbox("elevation-error", "Elevation Error", &err, "");
@@ -2037,6 +2047,9 @@ impl<T: InvokeUiSession> Remote<T> {
                 Some(misc::Union::PortableServiceRunning(b)) => {
                     self.handler.portable_service_running(b);
                     if self.elevation_requested && b {
+                        self.elevation_requested = false; // done
+                        self.handler.cancel_msgbox("wait-uac");
+                        self.handler.cancel_msgbox("on-uac");
                         self.handler.msgbox(
                             "custom-nocancel-success",
                             "Successful",

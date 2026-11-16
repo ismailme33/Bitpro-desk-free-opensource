@@ -247,6 +247,13 @@ class _RemotePageState extends State<RemotePage>
   @override
   Future<void> dispose() async {
     final closeSession = closeSessionOnDispose.remove(widget.id) ?? true;
+    // A connection ended (not just a tab moving to another window): let the
+    // main window refresh its Recent list.
+    if (closeSession) {
+      rustDeskWinManager
+          .call(WindowType.Main, kWindowEventBitproSessionEnded, '')
+          .then((_) {}, onError: (_) {});
+    }
     // Tell the main window a session ended after being connected a while
     // (used for the occasional thank-you bar). Not when a tab just moves.
     final connectedAt = _connectedAt;

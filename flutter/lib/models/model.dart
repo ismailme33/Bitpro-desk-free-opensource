@@ -717,6 +717,13 @@ class FfiModel with ChangeNotifier {
       showElevationError(sessionId, type, title, text, dialogManager);
     } else if (type == 'relay-hint' || type == 'relay-hint2') {
       showRelayHintDialog(sessionId, type, title, text, dialogManager, peerId);
+    } else if (text == 'remote_keeps_closing_tip') {
+      // The remote keeps dropping the session: manual Retry only, no
+      // automatic countdown (that would just loop again).
+      _timer?.cancel();
+      _reconnects = 1;
+      msgBox(sessionId, type, title, text, link, dialogManager,
+          reconnect: reconnect, reconnectTimeout: 0);
     } else if (text == kMsgboxTextWaitingForImage) {
       showConnectedWaitingForImage(dialogManager, sessionId, type, title, text);
     } else if (title == 'Privacy mode') {

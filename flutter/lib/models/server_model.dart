@@ -592,7 +592,13 @@ Future<void> stopService() async {
         onTap: () {},
         page: desktop.buildConnectionCard(client)));
     Future.delayed(Duration.zero, () async {
-      if (!hideCm) windowOnTop(null);
+      if (hideCm) return;
+      if (desktopType == DesktopType.cm) {
+        // A waiting request stays on top until it is answered.
+        await _cmToFront(pin: !client.authorized);
+      } else {
+        windowOnTop(null);
+      }
     });
     // Only do the hidden task when on Desktop.
     if (client.authorized && isDesktop) {
@@ -694,6 +700,35 @@ Future<void> stopService() async {
     });
   }
 
+  /// Brings the accept / elevate window (CM) to the front so the person at
+  /// this PC sees it: restores it when minimized and puts it above other
+  /// windows (Windows doesn't let a background app simply take focus).
+  /// [pin]: stay on top while a request waits for an answer; otherwise only
+  /// for a few seconds.
+  Future<void> _cmToFront({required bool pin}) async {
+    if (!isDesktop || desktopType != DesktopType.cm || hideCm) return;
+    try {
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.show();
+      await windowManager.setAlwaysOnTop(true);
+      await windowManager.focus();
+      if (!pin) {
+        Future.delayed(const Duration(seconds: 3), _cmUnpinIfIdle);
+      }
+    } catch (e) {
+      debugPrint('cm to front: $e');
+    }
+  }
+
+  /// Stops "always on top" unless a connection request still waits.
+  Future<void> _cmUnpinIfIdle() async {
+    if (!isDesktop || desktopType != DesktopType.cm) return;
+    if (_clients.any((c) => !c.authorized && !c.disconnected)) return;
+    try {
+      await windowManager.setAlwaysOnTop(false);
+    } catch (_) {}
+  }
+
   void sendLoginResponse(Client client, bool res) async {
     if (res) {
       bind.cmLoginRes(connId: client.id, res: res);
@@ -711,6 +746,7 @@ Future<void> stopService() async {
       _clients.remove(client);
       if (isAndroid) androidUpdatekeepScreenOn();
     }
+    _cmUnpinIfIdle(); // answered: stop staying on top
   }
 
   void onClientRemove(Map<String, dynamic> evt) {
@@ -733,6 +769,7 @@ Future<void> stopService() async {
       if (desktopType == DesktopType.cm && _clients.isEmpty) {
         hideCmWindow();
       }
+      _cmUnpinIfIdle(); // the waiting request went away
       if (isAndroid) androidUpdatekeepScreenOn();
       notifyListeners();
     } catch (e) {
@@ -757,6 +794,8 @@ Future<void> stopService() async {
     if (_showElevation != show) {
       _showElevation = show;
       notifyListeners();
+      // The Elevate button just appeared: make sure the person sees it.
+      if (show) _cmToFront(pin: false);
     }
   }
 

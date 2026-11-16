@@ -290,11 +290,11 @@ class BitproCoffeeBar extends StatelessWidget {
 bool _scheduled = false;
 
 /// True when running from a Microsoft Store (MSIX) package.
-bool _isMsixPackage() =>
+bool isMsixPackage() =>
     Platform.resolvedExecutable.toLowerCase().contains('\\windowsapps\\');
 
 /// The package family name of this MSIX package, or null if unpackaged.
-String? _packageFamilyName() {
+String? msixPackageFamilyName() {
   try {
     final kernel32 = DynamicLibrary.open('kernel32.dll');
     final getPfn = kernel32.lookupFunction<
@@ -330,14 +330,14 @@ Future<void> _setMs(String key, int ms) =>
 
 /// Call once from the main window. Does nothing outside the Store version.
 void startBitproRatingPrompt() {
-  if (!isWindows || _scheduled || !_isMsixPackage()) return;
+  if (!isWindows || _scheduled || !isMsixPackage()) return;
   _scheduled = true;
   Timer(_kStartupDelay, _maybePrompt);
 }
 
 Future<void> _maybePrompt() async {
   if (bind.mainGetLocalOption(key: _kOptRated) == 'Y') return;
-  final pfn = _packageFamilyName();
+  final pfn = msixPackageFamilyName();
   if (pfn == null || pfn.isEmpty) return;
 
   final now = DateTime.now().millisecondsSinceEpoch;

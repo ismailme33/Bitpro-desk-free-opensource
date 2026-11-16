@@ -16,6 +16,7 @@ import 'package:flutter_hbb/models/peer_model.dart';
 import '../../common.dart';
 import '../../common/bitpro_rating.dart';
 import '../../common/connecting_hint.dart';
+import '../../common/bitpro_feedback.dart';
 import '../../common/bitpro_update.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../common/widgets/peer_tab_page.dart';
@@ -272,6 +273,9 @@ const double _kIdFieldHeight = 50;
 /// Shared height of the connect card and the support card side by side.
 const double _kConnectRowHeight = 186;
 
+/// Width of the feedback card when it sits in the row.
+const double _kFeedbackCardWidth = 280;
+
 class _ConnectionPageState extends State<ConnectionPage>
     with SingleTickerProviderStateMixin, WindowListener {
   /// Controller for the id input bar.
@@ -378,18 +382,39 @@ class _ConnectionPageState extends State<ConnectionPage>
             // otherwise a slim version of it goes below. Decided from the
             // window width, not a LayoutBuilder: the ID autocomplete field
             // must not be built during layout (debug assertions).
+            // The feedback card joins the row on wide windows; otherwise a
+            // slim strip of it goes below the cards.
             (_hasRoomBesideConnectCard(context)
-                    ? SizedBox(
-                        // Both cards share this height (see _kConnectRowHeight).
-                        height: _kConnectRowHeight,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Flexible(child: _buildRemoteIDTextField(context)),
-                            const SizedBox(width: 16),
-                            const SizedBox(width: 340, child: _SupportCard()),
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            // All cards share this height (see _kConnectRowHeight).
+                            height: _kConnectRowHeight,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Flexible(
+                                    child: _buildRemoteIDTextField(context)),
+                                const SizedBox(width: 16),
+                                const SizedBox(
+                                    width: 340, child: _SupportCard()),
+                                if (_hasRoomForFeedbackCard(context)) ...[
+                                  const SizedBox(width: 16),
+                                  const SizedBox(
+                                      width: _kFeedbackCardWidth,
+                                      child: BitproFeedbackCard()),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (!_hasRoomForFeedbackCard(context)) ...[
+                            const SizedBox(height: 12),
+                            const SizedBox(
+                                width: 500 + 16 + 340,
+                                child: BitproFeedbackCard(slim: true)),
                           ],
-                        ),
+                        ],
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,6 +425,10 @@ class _ConnectionPageState extends State<ConnectionPage>
                           const SizedBox(
                               width: 460 + 20 * 2,
                               child: _SupportCard(compact: true)),
+                          const SizedBox(height: 12),
+                          const SizedBox(
+                              width: 460 + 20 * 2,
+                              child: BitproFeedbackCard(slim: true)),
                         ],
                       ))
                 .marginOnly(top: isOutgoingOnly ? 22 : 12),
@@ -438,6 +467,13 @@ class _ConnectionPageState extends State<ConnectionPage>
     const leftPaneAndPadding = 248.0 + 1 + 12 + 12;
     final available = MediaQuery.sizeOf(context).width - leftPaneAndPadding;
     return available >= 890;
+  }
+
+  /// True when the feedback card also fits in the row (890 + 16 + 280).
+  bool _hasRoomForFeedbackCard(BuildContext context) {
+    const leftPaneAndPadding = 248.0 + 1 + 12 + 12;
+    final available = MediaQuery.sizeOf(context).width - leftPaneAndPadding;
+    return available >= 890 + 16 + _kFeedbackCardWidth;
   }
 
   /// UI for the remote ID TextField.

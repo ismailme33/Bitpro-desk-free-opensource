@@ -1089,6 +1089,14 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Company name", "اسم الشركة"),
         ("Computer name", "اسم الكمبيوتر"),
         ("Device Name", "اسم الجهاز"),
+        ("remote_keeps_closing_tip", "الجهاز البعيد يغلق الاتصال بعد ثوانٍ من الاتصال بشكل متكرر. اطلب من الشخص هناك إعادة تشغيل Bitpro Desk، ثم اضغط إعادة المحاولة."),
+        ("elevation_not_completed_tip", "لم يكتمل رفع الصلاحيات. يجب على الشخص عند الجهاز البعيد الضغط على نعم في نافذة Windows (التحكم في حساب المستخدم) على شاشته. يرجى المحاولة مرة أخرى."),
+        ("would like to control your desk.", "يرغب في التحكم بجهازك."),
+        ("would like to transfer files with this PC.", "يرغب في نقل الملفات مع هذا الجهاز."),
+        ("would like to view your camera.", "يرغب في عرض الكاميرا لديك."),
+        ("would like to open a tunnel to this PC.", "يرغب في فتح نفق إلى هذا الجهاز."),
+        ("Encrypted connection", "اتصال مشفّر"),
+        ("Shows the screen of this PC", "يعرض شاشة هذا الجهاز"),
     ].iter().cloned().collect();
 }
 

@@ -421,121 +421,186 @@ class _CmHeaderState extends State<_CmHeader>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final textColor = Theme.of(context).textTheme.titleLarge?.color;
-    final muted = textColor?.withOpacity(0.55);
-    // Status pill: amber while waiting, green when connected, grey after.
+    final textColor =
+        Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
+    final muted = textColor.withOpacity(0.6);
+    final connected = client.authorized && !client.disconnected;
+    // Amber while waiting, green when connected, grey after.
     final Color statusColor = !client.authorized
         ? const Color(0xFFD97706)
         : client.disconnected
             ? Colors.grey
             : const Color(0xFF16A34A);
-    final statusText = client.authorized
-        ? client.disconnected
-            ? translate("Disconnected")
-            : translate("Connected")
-        : translate("Requesting access");
+    // What the other person is asking for (like AnyDesk's "would like to...").
+    final String wants;
+    switch (client.type_()) {
+      case ClientType.file:
+        wants = translate('would like to transfer files with this PC.');
+        break;
+      case ClientType.camera:
+        wants = translate('would like to view your camera.');
+        break;
+      case ClientType.portForward:
+        wants = translate('would like to open a tunnel to this PC.');
+        break;
+      case ClientType.remote:
+        wants = translate('would like to control your desk.');
+        break;
+    }
+    final String statusText = client.disconnected
+        ? translate('Disconnected')
+        : connected
+            ? translate('Connected')
+            : '';
+    final initial = client.name.isEmpty ? '?' : client.name[0].toUpperCase();
     return Container(
-      decoration: BoxDecoration(
-        color: MyTheme.panel(context),
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: MyTheme.panelBorder(context)),
-      ),
-      margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
-      padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+      margin: const EdgeInsets.fromLTRB(5, 8, 5, 4),
+      padding: const EdgeInsets.fromLTRB(4, 8, 0, 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Large tile with the person's initial (AnyDesk shows a big logo).
           Container(
-            width: 52,
-            height: 52,
+            width: 96,
+            height: 96,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: MyTheme.accent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.0),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF43F5E), Color(0xFFBE123C)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: MyTheme.accent.withOpacity(0.28),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Text(
-              client.name.isEmpty ? '?' : client.name[0].toUpperCase(),
+              initial,
               style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                color: MyTheme.accent,
-                fontSize: 24,
-              ),
+                  color: Colors.white,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w700),
             ),
-          ).marginOnly(right: 12.0),
+          ).marginOnly(right: 16),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  client.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        client.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18),
+                      ),
+                    ),
+                    // Chat / file log toggle once connected.
+                    Offstage(
+                      offstage: !client.authorized ||
+                          (client.type_() != ClientType.remote &&
+                              client.type_() != ClientType.file),
+                      child: IconButton(
+                        mouseCursor: WidgetStateMouseCursor.clickable,
+                        tooltip: translate(client.type_() == ClientType.file
+                            ? 'Transfer File'
+                            : 'Chat'),
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 34, minHeight: 34),
+                        onPressed: () => checkClickTime(client.id, () {
+                          if (client.type_() == ClientType.file) {
+                            gFFI.chatModel.toggleCMFilePage();
+                          } else {
+                            gFFI.chatModel.toggleCMChatPage(
+                                MessageKey(client.peerId, client.id));
+                          }
+                        }),
+                        icon: SvgPicture.asset(
+                            client.type_() == ClientType.file
+                                ? 'assets/file_transfer.svg'
+                                : 'assets/chat2.svg'),
+                        splashRadius: kDesktopIconButtonSplashRadius,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   formatID(client.peerId),
-                  style: TextStyle(color: muted, fontSize: 12.5),
-                ).marginOnly(top: 1, bottom: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                            color: statusColor, shape: BoxShape.circle),
-                      ).marginOnly(right: 6),
-                      Text(statusText,
-                          style: TextStyle(
-                              color: statusColor,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600)),
-                      if (client.authorized && !client.disconnected)
-                        Obx(
-                          () => Text(
-                            "  ·  ${formatDurationToTime(Duration(seconds: _time.value))}",
+                  style: TextStyle(color: muted, fontSize: 13),
+                ).marginOnly(top: 2, bottom: 8),
+                if (!client.authorized)
+                  Text(
+                    wants,
+                    style:
+                        TextStyle(color: textColor, fontSize: 14, height: 1.4),
+                  )
+                else
+                  // Connected / Disconnected pill with the running time.
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                              color: statusColor, shape: BoxShape.circle),
+                        ).marginOnly(right: 6),
+                        Text(statusText,
                             style: TextStyle(
                                 color: statusColor,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
+                        if (connected)
+                          Obx(
+                            () => Text(
+                              '  ·  ${formatDurationToTime(Duration(seconds: _time.value))}',
+                              style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
+                const SizedBox(height: 10),
+                // Small status icons (AnyDesk shows a lock and a monitor):
+                // the session is encrypted and shows this PC's screen.
+                Row(
+                  children: [
+                    Tooltip(
+                      message: translate('Encrypted connection'),
+                      child: const Icon(Icons.lock_rounded,
+                          size: 16, color: Color(0xFF16A34A)),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: translate('Shows the screen of this PC'),
+                      child: Icon(Icons.desktop_windows_rounded,
+                          size: 16, color: muted),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          Offstage(
-            offstage: !client.authorized ||
-                (client.type_() != ClientType.remote &&
-                    client.type_() != ClientType.file),
-            child: IconButton(mouseCursor: WidgetStateMouseCursor.clickable, 
-              onPressed: () => checkClickTime(client.id, () {
-                if (client.type_() == ClientType.file) {
-                  gFFI.chatModel.toggleCMFilePage();
-                } else {
-                  gFFI.chatModel
-                      .toggleCMChatPage(MessageKey(client.peerId, client.id));
-                }
-              }),
-              icon: SvgPicture.asset(client.type_() == ClientType.file
-                  ? 'assets/file_transfer.svg'
-                  : 'assets/chat2.svg'),
-              splashRadius: kDesktopIconButtonSplashRadius,
-            ),
-          )
         ],
       ),
     );
@@ -565,47 +630,32 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
     });
   }
 
-  /// One settings-style row: icon, label, switch. The whole row is clickable.
-  Widget _row(BuildContext context, IconData icon, String label, bool value,
+  /// One permission tile (AnyDesk style): a square icon button. On = rose,
+  /// off = grey. The tooltip names it and says whether it is on or off.
+  Widget _tile(BuildContext context, IconData icon, String label, bool value,
       void Function(bool) onChanged) {
     final textColor =
         Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87;
-    return InkWell(
-      mouseCursor: SystemMouseCursors.click,
-      borderRadius: BorderRadius.circular(6),
-      onTap: () => onChanged(!value),
-      child: SizedBox(
-        height: 34,
-        child: Row(
-          children: [
-            Icon(icon,
-                size: 17,
-                color: value ? MyTheme.accent : textColor.withOpacity(0.45)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                translate(label),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: textColor.withOpacity(value ? 0.9 : 0.6),
-                ),
-              ),
+    return Tooltip(
+      message: '${translate(label)}: ${value ? translate('On') : translate('Off')}',
+      waitDuration: const Duration(milliseconds: 300),
+      child: Material(
+        color: value ? MyTheme.accent : MyTheme.panelBorder(context),
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          mouseCursor: SystemMouseCursors.click,
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => onChanged(!value),
+          child: SizedBox(
+            width: 54,
+            height: 54,
+            child: Icon(
+              icon,
+              size: 24,
+              color: value ? Colors.white : textColor.withOpacity(0.45),
             ),
-            Transform.scale(
-              scale: 0.72,
-              alignment: Alignment.centerRight,
-              child: Switch(
-                value: value,
-                onChanged: onChanged,
-                activeColor: Colors.white,
-                activeTrackColor: MyTheme.accent,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          ],
-        ).paddingSymmetric(horizontal: 6),
+          ),
+        ),
       ),
     );
   }
@@ -613,53 +663,43 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
   @override
   Widget build(BuildContext context) {
     final muted =
-        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.55);
-    final rows = <Widget>[
-      _row(context, Icons.mouse_outlined, 'Keyboard & mouse', client.keyboard,
+        Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6);
+    final tiles = <Widget>[
+      _tile(context, Icons.mouse_rounded, 'Keyboard & mouse', client.keyboard,
           (v) => _set('keyboard', v, (e) => client.keyboard = e)),
-      _row(context, Icons.content_paste_rounded, 'Clipboard', client.clipboard,
+      _tile(context, Icons.content_paste_rounded, 'Clipboard', client.clipboard,
           (v) => _set('clipboard', v, (e) => client.clipboard = e)),
-      _row(context, Icons.volume_up_outlined, 'Audio', client.audio,
+      _tile(context, Icons.volume_up_rounded, 'Audio', client.audio,
           (v) => _set('audio', v, (e) => client.audio = e)),
-      _row(context, Icons.folder_copy_outlined, 'File transfer', client.file,
+      _tile(context, Icons.folder_copy_rounded, 'File transfer', client.file,
           (v) => _set('file', v, (e) => client.file = e)),
-      _row(context, Icons.restart_alt_rounded, 'Remote restart',
-          client.restart,
-          (v) => _set('restart', v, (e) => client.restart = e)),
-      _row(context, Icons.videocam_outlined, 'Session recording',
+      _tile(context, Icons.restart_alt_rounded, 'Remote restart',
+          client.restart, (v) => _set('restart', v, (e) => client.restart = e)),
+      _tile(context, Icons.videocam_rounded, 'Session recording',
           client.recording,
           (v) => _set('recording', v, (e) => client.recording = e)),
       // only windows support block input
       if (isWindows)
-        _row(context, Icons.block_rounded, 'Block user input',
+        _tile(context, Icons.visibility_off_rounded, 'Block user input',
             client.blockInput,
             (v) => _set('block_input', v, (e) => client.blockInput = e)),
     ];
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 5.0),
-      padding: const EdgeInsets.fromLTRB(8, 10, 6, 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        color: MyTheme.panel(context),
-        border: Border.all(color: MyTheme.panelBorder(context)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(9, 6, 9, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            translate('PERMISSIONS'),
+            translate('Permissions'),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
               color: muted,
             ),
-          ).marginOnly(left: 6, bottom: 4),
+          ).marginOnly(bottom: 10),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: rows,
+            child: SingleChildScrollView(
+              child: Wrap(spacing: 8, runSpacing: 8, children: tiles),
             ),
           ),
         ],
@@ -672,6 +712,12 @@ const double buttonBottomMargin = 8;
 
 /// Red for destructive actions in the connection manager.
 const Color _kDanger = Color(0xFFDC2626);
+
+/// Green for Accept, like AnyDesk's accept window.
+const Color _kAcceptGreen = Color(0xFF2E9E4A);
+
+/// Height of the big Accept / Dismiss / Disconnect buttons.
+const double _kBigButtonHeight = 52;
 
 class _CmControlPanel extends StatelessWidget {
   final Client client;
@@ -845,18 +891,19 @@ class _CmControlPanel extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              // Outlined danger button: clear, but not shouting.
+              // Large red Disconnect (AnyDesk style).
               child: buildButton(context,
-                  color: _kDanger.withOpacity(0.06),
-                  border: Border.all(color: _kDanger.withOpacity(0.45)),
+                  color: _kDanger,
+                  height: _kBigButtonHeight,
+                  fontSize: 15,
                   onClick: handleDisconnect,
                   text: 'Disconnect',
                   icon: const Icon(
                     Icons.link_off_rounded,
-                    color: _kDanger,
-                    size: 16,
+                    color: Colors.white,
+                    size: 18,
                   ),
-                  textColor: _kDanger),
+                  textColor: Colors.white),
             ),
           ],
         )
@@ -915,50 +962,39 @@ class _CmControlPanel extends StatelessWidget {
             ],
           ),
         ),
-        Offstage(
-          offstage: !showElevation || !showAccept,
-          child: buildButton(context, color: MyTheme.accentDark, onClick: () {
-            handleAccept(context);
-            handleElevate(context);
-            windowManager.minimize();
-          },
-              text: 'Accept and Elevate',
-              icon: Icon(
-                Icons.security_rounded,
-                color: Colors.white,
-                size: 14,
-              ),
-              textColor: Colors.white,
-              tooltip: 'accept_and_elevate_btn_tooltip'),
-        ),
+        // AnyDesk-style pair: large green Accept, large red Dismiss.
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (showAccept)
               Expanded(
-                child: Column(
-                  children: [
-                    buildButton(
-                      context,
-                      color: MyTheme.accent,
-                      onClick: () {
-                        handleAccept(context);
-                        windowManager.minimize();
-                      },
-                      text: 'Accept',
-                      textColor: Colors.white,
-                    ),
-                  ],
+                // Accept always elevates too when that is possible on this PC
+                // (the Windows prompt still has to be approved here). Where
+                // elevation isn't needed, it just accepts.
+                child: buildButton(
+                  context,
+                  color: _kAcceptGreen,
+                  height: _kBigButtonHeight,
+                  fontSize: 15,
+                  onClick: () {
+                    handleAccept(context);
+                    if (showElevation) handleElevate(context);
+                    windowManager.minimize();
+                  },
+                  text: 'Accept',
+                  textColor: Colors.white,
+                  tooltip: showElevation ? 'accept_and_elevate_btn_tooltip' : null,
                 ),
               ),
             Expanded(
               child: buildButton(
                 context,
-                color: Colors.transparent,
-                border: Border.all(color: const Color(0xFFD9D9D9)),
+                color: _kDanger,
+                height: _kBigButtonHeight,
+                fontSize: 15,
                 onClick: handleDisconnect,
                 text: 'Dismiss',
-                textColor: null,
+                textColor: Colors.white,
               ),
             ),
           ],
@@ -975,11 +1011,13 @@ class _CmControlPanel extends StatelessWidget {
       required String text,
       required Color? textColor,
       String? tooltip,
+      double height = 40,
+      double fontSize = 13.5,
       GestureTapDownCallback? onTapDown}) {
     assert(!(onClick == null && onTapDown == null));
     Widget textWidget;
     final textStyle = TextStyle(
-        color: textColor, fontSize: 13.5, fontWeight: FontWeight.w600);
+        color: textColor, fontSize: fontSize, fontWeight: FontWeight.w600);
     if (icon != null) {
       textWidget = Text(
         translate(text),
@@ -997,7 +1035,7 @@ class _CmControlPanel extends StatelessWidget {
     }
     final borderRadius = BorderRadius.circular(8.0);
     final btn = Container(
-      height: 40,
+      height: height,
       decoration: BoxDecoration(
           color: color, borderRadius: borderRadius, border: border),
       child: InkWell(mouseCursor: WidgetStateMouseCursor.clickable, 

@@ -4150,12 +4150,40 @@ impl Connection {
             }
         }
         
+        let started = err.is_empty();
         let mut misc = Misc::new();
         misc.set_elevation_response(err);
         let mut msg = Message::new();
         msg.set_misc(misc);
         let _ = self.send(msg).await;
         self.update_auto_disconnect_timer();
+
+        // "" above only means the helper was started; elevation completes when
+        // the remote user approves the Windows UAC prompt. If that doesn't
+        // happen (No clicked, prompt closed, helper failed), tell the
+        // controller instead of leaving it waiting and asking again.
+        #[cfg(not(windows))]
+        let _ = started;
+        #[cfg(windows)]
+        if started {
+            let mut inner = self.inner.clone();
+            std::thread::spawn(move || {
+                const WAIT: std::time::Duration = std::time::Duration::from_secs(60);
+                let start = Instant::now();
+                while start.elapsed() < WAIT {
+                    if portable_client::running() {
+                        return; // PortableServiceRunning(true) is sent elsewhere
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                }
+                log::info!("elevation not completed within {:?}", WAIT);
+                let mut misc = Misc::new();
+                misc.set_elevation_response("elevation_not_completed_tip".to_owned());
+                let mut msg = Message::new();
+                msg.set_misc(misc);
+                inner.send(Arc::new(msg));
+            });
+        }
     }
 
     async fn capture_displays(&mut self, add: &[usize], sub: &[usize], set: &[usize]) {
@@ -5413,7 +5441,17 @@ async fn start_ipc(
                 .unwrap()
                 .push(crate::run_me(args)?);
         }
-        for _ in 0..20 {
+        // Wait for the connection manager window to come up. It is a full
+        // Flutter app: on a slow PC, or right after an update while Windows
+        // Defender scans the new exe, it can take well over the 6 s this used
+        // to allow, and the session was then closed every time (seen in
+        // logs: "Failed to connect to connection manager" ~6 s after login).
+        // It connects as soon as the window is ready, so fast PCs don't wait.
+        // Without the window the session is still refused (the person at
+        // this PC must always see who is connected).
+        const CM_START_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+        let wait_start = std::time::Instant::now();
+        while wait_start.elapsed() < CM_START_TIMEOUT {
             sleep(0.3).await;
             if let Ok(s) = crate::ipc::connect(1000, "_cm").await {
                 stream = Some(s);
@@ -5423,6 +5461,7 @@ async fn start_ipc(
         if stream.is_none() {
             bail!("Failed to connect to connection manager");
         }
+        log::info!("connection manager ready after {:?}", wait_start.elapsed());
     }
 
     let _res = tx_stream_ready.send(()).await;

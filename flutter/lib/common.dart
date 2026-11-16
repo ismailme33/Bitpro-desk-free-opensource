@@ -3378,7 +3378,10 @@ class _ReconnectCountDownButtonState extends State<_ReconnectCountDownButton> {
   @override
   Widget build(BuildContext context) {
     return dialogButton(
-      '${translate('Reconnect')} (${_countdownSeconds}s)',
+      // second 0 = manual retry only (no countdown text).
+      widget.second <= 0
+          ? translate('Retry')
+          : '${translate('Reconnect')} (${_countdownSeconds}s)',
       onPressed: widget.onPressed,
       isOutline: true,
     );

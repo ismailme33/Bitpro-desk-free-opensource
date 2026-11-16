@@ -521,5 +521,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("HopToDesk could not sign in to {} by itself, so it no longer reconnects to it. Connect to it with Remember password ticked, then turn on KVM mode again.", "HopToDesk could not sign in to {} by itself, so it no longer reconnects to it. Connect to it with Remember password ticked, then turn on KVM mode again."),
         ("For an office, Desks on the Business plan pairs PCs from the dashboard.", "For an office, Desks on the Business plan pairs PCs from the dashboard."),
         ("HopToDesk could not load the GStreamer PipeWire plugin needed for screen capture, install pipewire-gstreamer (Fedora) or gstreamer1.0-pipewire (Debian, Ubuntu) on the remote device", "HopToDesk could not load the GStreamer PipeWire plugin needed for screen capture, install pipewire-gstreamer (Fedora) or gstreamer1.0-pipewire (Debian, Ubuntu) on the remote device"),
+        ("remote_keeps_closing_tip", "The remote computer keeps closing the connection a few seconds after connecting. Ask the person there to restart Bitpro Desk, then click Retry."),
+        ("elevation_not_completed_tip", "Elevation was not completed. The person at the remote computer must click Yes on the Windows prompt (User Account Control) on their screen. Please try again."),
     ].iter().cloned().collect();
 }

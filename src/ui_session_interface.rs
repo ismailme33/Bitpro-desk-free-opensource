@@ -86,6 +86,10 @@ pub struct Session<T: InvokeUiSession> {
     pub request_add_to_dashboard_busy: Arc<AtomicBool>,
     // Start of the current silent auto-reconnect window (see `msgbox`).
     pub reconnect_window_start: Arc<Mutex<Option<Instant>>>,
+    // When the current connection round logged in (None until it does).
+    pub login_at: Arc<Mutex<Option<Instant>>>,
+    // Sessions in a row that the remote closed soon after login (see `msgbox`).
+    pub quick_drops: Arc<AtomicUsize>,
 }
 
 #[derive(Clone)]
@@ -1472,6 +1476,7 @@ impl<T: InvokeUiSession> Session<T> {
         //    cloned.lc.write().unwrap().force_relay = true;
         //}
         self.lc.write().unwrap().peer_info = None;
+        *self.login_at.lock().unwrap() = None; // new round: not logged in yet
         self.reconnect_count.fetch_add(1, Ordering::SeqCst);
         let mut lock = self.thread.lock().unwrap();
         // No need to join the previous thread, because it will exit automatically.
@@ -2072,9 +2077,42 @@ impl<T: InvokeUiSession> Interface for Session<T> {
             // let the user retry manually. Remote session switches (rejoin)
             // can take longer, so they keep the backoff schedule.
             const AUTO_RECONNECT_WINDOW: std::time::Duration = std::time::Duration::from_secs(5);
+            // A session the remote closes within this time counts as a quick
+            // drop; after MAX_QUICK_DROPS in a row we stop instead of looping.
+            const QUICK_DROP: std::time::Duration = std::time::Duration::from_secs(30);
+            const MAX_QUICK_DROPS: usize = 3;
+            // Take (and clear) this round's login time, so one drop is counted once.
+            let login_at = self.login_at.lock().unwrap().take();
             let delay = if rejoin {
                 let n = self.reconnect_count.load(Ordering::SeqCst) as u32;
                 Some(std::cmp::min(1u64 << (n.min(4) + 1), 30)) // 2, 4, 8, 16, 30 (cap)
+            } else if login_at.is_none() {
+                // Dropped before login (while the password / accept / 2FA
+                // dialog was open): a silent reconnect would just wipe that
+                // dialog, so show the error with a Retry button instead.
+                log::info!("no auto-reconnect: dropped before login: {}", text);
+                None
+            } else if {
+                let quick = login_at.map_or(false, |t| t.elapsed() < QUICK_DROP);
+                let drops = if quick {
+                    self.quick_drops.fetch_add(1, Ordering::SeqCst) + 1
+                } else {
+                    self.quick_drops.store(0, Ordering::SeqCst);
+                    0
+                };
+                drops >= MAX_QUICK_DROPS
+            } {
+                self.quick_drops.store(0, Ordering::SeqCst);
+                *self.reconnect_window_start.lock().unwrap() = None;
+                log::info!("auto-reconnect stopped: remote closed {} sessions soon after login", MAX_QUICK_DROPS);
+                self.ui_handler.msgbox(
+                    "error",
+                    "Connection Error",
+                    "remote_keeps_closing_tip",
+                    "",
+                    false,
+                );
+                return;
             } else {
                 let started = *self
                     .reconnect_window_start
@@ -2125,6 +2163,7 @@ impl<T: InvokeUiSession> Interface for Session<T> {
         log::debug!("handle_peer_info :{:?}", pi);
         self.reconnect_count.store(0, Ordering::SeqCst);
         *self.reconnect_window_start.lock().unwrap() = None;
+        *self.login_at.lock().unwrap() = Some(Instant::now());
         self.connection_round_state.lock().unwrap().ever_logged_in = true;
         // Track whether this is the initial PeerInfo (first handle_peer_info
         // call) so we only show the "Connected, waiting for image…" dialog

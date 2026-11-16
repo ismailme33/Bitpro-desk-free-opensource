@@ -1406,11 +1406,9 @@ fn get_after_install(exe: &str) -> String {
     reg add HKEY_CLASSES_ROOT\\{ext}\\shell\\open\\command /f
 	reg add HKEY_CLASSES_ROOT\\{ext}\\shell\\open\\command /f /ve /t REG_SZ /d \"\\\"{exe}\\\" \\\"--connect\\\" \\\"%%1\\\"\"
     sc create \"{app_name}\" binpath= \"\\\"{exe}\\\" --service\" start= auto DisplayName= \"{app_name} Service\"
-	netsh advfirewall firewall show rule name=\"{app_name} Service\" |  findstr /c:\"{app_name} Service\" > NUL 2>&1
-	IF NOT %ERRORLEVEL% EQU 0 (
-		 netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=out action=allow program=\"{exe}\" enable=yes
-		 netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=in action=allow program=\"{exe}\" enable=yes
-	)	
+	netsh advfirewall firewall delete rule name=\"{app_name} Service\" > NUL 2>&1
+	netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=out action=allow program=\"{exe}\" enable=yes
+	netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=in action=allow program=\"{exe}\" enable=yes
     sc start \"{app_name}\"
     reg add HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /f /v SoftwareSASGeneration /t REG_DWORD /d 1
 	", ext=ext, exe=exe, app_name=app_name)
@@ -1670,6 +1668,25 @@ fn create_and_start_service(
     Ok(())
 }
 
+/// Replaces the app's firewall rules (in + out) with ones for `exe`.
+/// Only checking that a rule with this name exists was not enough: an old
+/// rule can point at a previous install's exe, which left the current one
+/// blocked. Needs admin rights.
+pub fn ensure_firewall_rules(rule_name: &str, exe: &str) {
+    let _ = helper_command("netsh")
+        .args(&[
+            "advfirewall",
+            "firewall",
+            "delete",
+            "rule",
+            &format!("name={}", rule_name),
+        ])
+        .output();
+    netsh_add_firewall_rule(rule_name, exe, "out");
+    netsh_add_firewall_rule(rule_name, exe, "in");
+}
+
+#[allow(dead_code)]
 fn netsh_firewall_rule_exists(rule_name: &str) -> bool {
     match helper_command("netsh")
         .args(&[
@@ -2002,11 +2019,8 @@ pub fn install_me(options: &str, path: String, silent: bool, _debug: bool, no_st
     }
 
     if !config::is_outgoing_only() {
-        let rule_name = format!("{} Service", app_name);
-        if !netsh_firewall_rule_exists(&rule_name) {
-            netsh_add_firewall_rule(&rule_name, &exe, "out");
-            netsh_add_firewall_rule(&rule_name, &exe, "in");
-        }
+        // Always (re)create the rules for this exe (see ensure_firewall_rules).
+        ensure_firewall_rules(&format!("{} Service", app_name), &exe);
         match create_and_start_service(
             &app_name,
             &format!("{} Service", app_name),
@@ -2590,6 +2604,16 @@ pub fn elevate_or_run_as_system(is_setup: bool, is_elevate: bool, is_run_as_syst
     };
     if is_root() {
         if is_run_as_system {
+            // Store (MSIX) version: there is no installer to add the firewall
+            // rule, and this is the only time the app runs with admin rights
+            // (after the remote user approved elevation).
+            if hbb_common::config::is_msix_package() {
+                if let Ok(exe) = std::env::current_exe() {
+                    let app_name = crate::get_app_name();
+                    ensure_firewall_rules(&app_name, &exe.to_string_lossy());
+                    log::info!("firewall rules set for {}", exe.display());
+                }
+            }
             log::info!("run portable service");
             crate::portable_service::server::run_portable_service();
         }

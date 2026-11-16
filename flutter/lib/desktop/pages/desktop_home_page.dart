@@ -11,6 +11,7 @@ import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/common/pinned_peers.dart';
 import 'package:flutter_hbb/common/bitpro_update.dart';
 import 'package:flutter_hbb/common/bitpro_rating.dart';
+import 'package:flutter_hbb/common/bitpro_shortcut.dart';
 import 'package:flutter_hbb/common/connecting_hint.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
@@ -676,12 +677,23 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     );
   }
 
+  /// Reloads the Recent list after a connection ended. The session window
+  /// saves the peer's data while it closes, so load again a moment later in
+  /// case the first reload came before that.
+  void _refreshRecentPeers() {
+    bind.mainLoadRecentPeers();
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) bind.mainLoadRecentPeers();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     refreshJumpList();
     startBitproUpdateCheck();
     startBitproRatingPrompt();
+    ensureMsixDesktopShortcut(); // Store version: desktop icon (see file)
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
@@ -772,6 +784,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         await rustDeskWinManager.registerActiveWindow(call.arguments["id"]);
       } else if (call.method == kWindowEventHide) {
         await rustDeskWinManager.unregisterActiveWindow(call.arguments['id']);
+        _refreshRecentPeers(); // a session window closed
+      } else if (call.method == kWindowEventBitproSessionEnded) {
+        _refreshRecentPeers(); // a connection ended
       } else if (call.method == kWindowEventBitproSessionDone) {
         onBitproGoodSession();
       } else if (call.method == kWindowConnect) {
